@@ -39,9 +39,15 @@ struct	rusage {
 	long	ru_nivcsw;		/* involuntary " */
 };
 
+/*
+linux提供资源限制机制，对进程使用系统资源施加某些限制。
+该机制利用task_struct中的rlim数组
+*/
 struct rlimit {
-	unsigned long	rlim_cur;
-	unsigned long	rlim_max;
+	unsigned long	rlim_cur;//进程当前的资源限制，也称软限制 soft limit
+	unsigned long	rlim_max;//该限制的最大容许值，也成硬限制 hard limit
+	/*系统调用setrlimit来增减当前限制，但不能超出rlim_max指定值，getrlimits用于检查当前限制
+	*/
 };
 
 #define	PRIO_MIN	(-20)
