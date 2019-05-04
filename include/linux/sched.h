@@ -22,11 +22,11 @@
 #define CLONE_UNTRACED		0x00800000	/* set if the tracing process can't force CLONE_PTRACE on this clone */
 #define CLONE_CHILD_SETTID	0x01000000	/* set the TID in the child */
 #define CLONE_STOPPED		0x02000000	/* Start in stopped state */
-#define CLONE_NEWUTS		0x04000000	/* New utsname group? */
-#define CLONE_NEWIPC		0x08000000	/* New ipcs */
-#define CLONE_NEWUSER		0x10000000	/* New user namespace */
-#define CLONE_NEWPID		0x20000000	/* New pid namespace */
-#define CLONE_NEWNET		0x40000000	/* New network namespace */
+#define CLONE_NEWUTS		0x04000000	/* New utsname group? 创建新的utsname组*/
+#define CLONE_NEWIPC		0x08000000	/* New ipcs 创建新的IPC命名空间 */
+#define CLONE_NEWUSER		0x10000000	/* New user namespace 创建新的用户命名空间*/
+#define CLONE_NEWPID		0x20000000	/* New pid namespace 创建新的PID命名空间*/
+#define CLONE_NEWNET		0x40000000	/* New network namespace 创建新的网络命名空间*/
 
 /*
  * Scheduling policies
@@ -1067,7 +1067,7 @@ ipc相关*/
 打开文件信息*/
 	struct files_struct *files;
 /* namespaces 
-命名空间*/
+*命名空间*/
 	struct nsproxy *nsproxy;
 /* signal handlers 
 信号处理程序*/
