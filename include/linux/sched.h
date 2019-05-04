@@ -915,13 +915,13 @@ struct sched_entity {
 };
 
 struct task_struct {
-	volatile long state;	/* -1 unrunnable, 0 runnable, >0 stopped */
+	volatile long state;	/* -1 unrunnable, 0 runnable, >0 stopped  -1 表示不可运行，0表示可运行 >0表示停止*/
 	void *stack;
 	atomic_t usage;
-	unsigned int flags;	/* per process flags, defined below */
+	unsigned int flags;	/* per process flags, defined below  每一个进程标志*/
 	unsigned int ptrace;
 
-	int lock_depth;		/* BKL lock depth */
+	int lock_depth;		/* BKL lock depth  大内核深度锁*/
 
 #ifdef CONFIG_SMP
 #ifdef __ARCH_WANT_UNLOCKED_CTXSW
@@ -966,17 +966,18 @@ struct task_struct {
 	/*
 	 * ptrace_list/ptrace_children forms the list of my children
 	 * that were stolen by a ptracer.
+	 *ptrace_list/ptrace_clildren链表是ptrace能够看到的当前进程的子进程列表
 	 */
 	struct list_head ptrace_children;
 	struct list_head ptrace_list;
 
 	struct mm_struct *mm, *active_mm;
 
-/* task state */
+/* task state 进程状态*/
 	struct linux_binfmt *binfmt;
 	int exit_state;
 	int exit_code, exit_signal;
-	int pdeath_signal;  /*  The signal sent when the parent dies  */
+	int pdeath_signal;  /*  The signal sent when the parent dies  父进程终止时发送的信号*/
 	/* ??? */
 	unsigned int personality;
 	unsigned did_exec:1;
@@ -991,22 +992,25 @@ struct task_struct {
 	 * pointers to (original) parent process, youngest child, younger sibling,
 	 * older sibling, respectively.  (p->father can be replaced with 
 	 * p->parent->pid)
+	 分别指向（原）父进程、最年轻的子进程、年幼的兄弟进程、年长的兄弟进程的指针
+	 （p->father可以替换为 p->parent->pid）
 	 */
-	struct task_struct *real_parent; /* real parent process (when being debugged) */
-	struct task_struct *parent;	/* parent process */
+	struct task_struct *real_parent; /* real parent process (when being debugged) 真正的父进程（被调试的情况下）*/
+	struct task_struct *parent;	/* parent process 父进程*/
 	/*
 	 * children/sibling forms the list of my children plus the
 	 * tasks I'm ptracing.
+	 children/sibling链表外加当前调试的进程，构成了当前进程的所有子进程
 	 */
-	struct list_head children;	/* list of my children */
-	struct list_head sibling;	/* linkage in my parent's children list */
-	struct task_struct *group_leader;	/* threadgroup leader */
+	struct list_head children;	/* list of my children 子进程链表 */
+	struct list_head sibling;	/* linkage in my parent's children list 连接到父进程的子进程链表*/
+	struct task_struct *group_leader;	/* threadgroup leader 线程组组长*/
 
-	/* PID/PID hash table linkage. */
+	/* PID/PID hash table linkage. PID和PID散列表的联系*/
 	struct pid_link pids[PIDTYPE_MAX];
 	struct list_head thread_group;
 
-	struct completion *vfork_done;		/* for vfork() */
+	struct completion *vfork_done;		/* for vfork() 用于vfork*/
 	int __user *set_child_tid;		/* CLONE_CHILD_SETTID */
 	int __user *clear_child_tid;		/* CLONE_CHILD_CLEARTID */
 
@@ -1014,17 +1018,19 @@ struct task_struct {
 	cputime_t utime, stime, utimescaled, stimescaled;
 	cputime_t gtime;
 	cputime_t prev_utime, prev_stime;
-	unsigned long nvcsw, nivcsw; /* context switch counts */
-	struct timespec start_time; 		/* monotonic time */
-	struct timespec real_start_time;	/* boot based time */
-/* mm fault and swap info: this can arguably be seen as either mm-specific or thread-specific */
+	unsigned long nvcsw, nivcsw; /* context switch counts 上下文切换计数*/
+	struct timespec start_time; 		/* monotonic time 单调时间 */
+	struct timespec real_start_time;	/* boot based time 启动以来的时间*/
+/* mm fault and swap info: this can arguably be seen as either mm-specific or thread-specific 
+内存管理器失效和页交换信息，这个有点争论。它既可以看作是特定于内存管理器的，也可以看作是特定于线程的
+*/
 	unsigned long min_flt, maj_flt;
 
   	cputime_t it_prof_expires, it_virt_expires;
 	unsigned long long it_sched_expires;
 	struct list_head cpu_timers[3];
 
-/* process credentials */
+/* process credentials 进程身份*/
 	uid_t uid,euid,suid,fsuid;
 	gid_t gid,egid,sgid,fsgid;
 	struct group_info *group_info;
@@ -1039,27 +1045,37 @@ struct task_struct {
 	char comm[TASK_COMM_LEN]; /* executable name excluding path
 				     - access with [gs]et_task_comm (which lock
 				       it with task_lock())
-				     - initialized normally by flush_old_exec */
-/* file system info */
+				     - initialized normally by flush_old_exec 
+				     除去路径后的可执行文件名称
+				     -用[gs]et_task_comm访问（其中用task_lock()锁定它）
+				     -通常由flush_old_exec初始化*/
+/* file system info 
+文件系统信息*/
 	int link_count, total_link_count;
 #ifdef CONFIG_SYSVIPC
-/* ipc stuff */
+/* ipc stuff 
+ipc相关*/
 	struct sysv_sem sysvsem;
 #endif
-/* CPU-specific state of this task */
+/* CPU-specific state of this task 
+当前进程特定于CPU的状态信息*/
 	struct thread_struct thread;
-/* filesystem information */
+/* filesystem information 
+文件系统信息*/
 	struct fs_struct *fs;
-/* open file information */
+/* open file information
+打开文件信息*/
 	struct files_struct *files;
-/* namespaces */
+/* namespaces 
+命名空间*/
 	struct nsproxy *nsproxy;
-/* signal handlers */
+/* signal handlers 
+信号处理程序*/
 	struct signal_struct *signal;
 	struct sighand_struct *sighand;
 
 	sigset_t blocked, real_blocked;
-	sigset_t saved_sigmask;		/* To be restored with TIF_RESTORE_SIGMASK */
+	sigset_t saved_sigmask;		/* To be restored with TIF_RESTORE_SIGMASK 用TIF_RESTORE_SIGMASK恢复*/
 	struct sigpending pending;
 
 	unsigned long sas_ss_sp;
@@ -1073,7 +1089,8 @@ struct task_struct {
 	struct audit_context *audit_context;
 	seccomp_t seccomp;
 
-/* Thread group tracking */
+/* Thread group tracking
+线程组跟踪*/
    	u32 parent_exec_id;
    	u32 self_exec_id;
 /* Protection of (de-)allocation: mm, files, fs, tty, keyrings */
@@ -1116,13 +1133,15 @@ struct task_struct {
 	unsigned int lockdep_recursion;
 #endif
 
-/* journalling filesystem info */
+/* journalling filesystem info 
+日志文件系统信息*/
 	void *journal_info;
 
 /* stacked block device info */
 	struct bio *bio_list, **bio_tail;
 
-/* VM state */
+/* VM state 
+虚拟内存状态*/
 	struct reclaim_state *reclaim_state;
 
 	struct backing_dev_info *backing_dev_info;
