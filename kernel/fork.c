@@ -970,6 +970,24 @@ static void rt_mutex_init_task(struct task_struct *p)
  * parts of the process environment (as per the clone
  * flags). The actual kick-off is left to the caller.
  */
+/*copy_process流程
+*copy_process----
+*               |-->检查标志
+*               |-->dup_task_struct
+*               |-->检查资源限制
+*               |-->初始化task_struct
+*               |-->sched_fork
+*               |-->复制/共享进程的各个部分---
+*               |                         |-->copy_semundo
+*               |                         |-->copy_files
+*               |                         |-->copy_fs
+*               |                         |-->copy_sighand
+*               |                         |-->copy_signal
+*               |                         |-->copy_mm
+*               |                         |-->copy_namespaces
+*               |                         |-->copy_thread
+*               |-->设置各个ID,进程关系，等等
+*/
 static struct task_struct *copy_process(unsigned long clone_flags,
 					unsigned long stack_start,
 					struct pt_regs *regs,
