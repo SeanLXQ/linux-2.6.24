@@ -1400,6 +1400,21 @@ static int fork_traceflag(unsigned clone_flags)
  * It copies the process, and if successful kick-starts
  * it and waits for it to finish using the VM if required.
  */
+/*
+*clone_flags:标志集合，用来制定控制复制过程的一些属性。最低字节指定了在子进程终止时被发给父进程的信号号码其余高子节保存了各种常数
+*stack_start：用户状态下栈的起始位置
+*regs：一个指向寄存器集合的指针，其中以原始形式保存了调用参数。该参数使用的数据类型是特定于体系结构的struct pt_regs
+*stack_size：用户状态下栈的大小，通常设置为0
+*parent_tidptr和child_tidptr：指向用户空间地址的两个指针，分别指向父子进程的PID。 sys_fork里面通常为NULL，sys_clone里面为指定的指针，用于与线程库通信
+*/
+/*do_fork执行流程
+*do_fork---
+*         |-->copy_process
+*	  |-->确定PID
+*	  |-->初始化vfork的完成处理程序（在设置了CLONE_VFORK的情况下）和ptrace标志
+*         |-->wake_up_new_task
+*         |-->是否设置了CLONE_VFORK标志？---》wait_for_completion
+*/
 long do_fork(unsigned long clone_flags,
 	      unsigned long stack_start,
 	      struct pt_regs *regs,
@@ -1430,6 +1445,11 @@ long do_fork(unsigned long clone_flags,
 		 * this is enough to call pid_nr_ns here, but this if
 		 * improves optimisation of regular fork()
 		 */
+		/*
+		*fork要返回新进程的PID，因此必须获得PID。如果设置了CLONE_NEWPID，fork操作可能创建了新的PID命名空间，这样的话，则需要
+		*调用task_pid_nr_ns获取父命名空间中为新进程选择PID，即发出fork调用的进程所在的命名空间。
+		*如果PID命名空间没有改变，调用task_pid_vnr获取局部PID即可，因为新旧进程都在同一个命名空间中
+		*/
 		nr = (clone_flags & CLONE_NEWPID) ?
 			task_pid_nr_ns(p, current->nsproxy->pid_ns) :
 				task_pid_vnr(p);
@@ -1441,7 +1461,10 @@ long do_fork(unsigned long clone_flags,
 			p->vfork_done = &vfork;
 			init_completion(&vfork);
 		}
-
+		
+		/*
+		*如果要使用Ptrace监控新的进程，那么在创建新进程后会立即向其发送SIGSTOP信号，以便附接的调试器检查其数据
+		*/
 		if ((p->ptrace & PT_PTRACED) || (clone_flags & CLONE_STOPPED)) {
 			/*
 			 * We'll start up with an immediate SIGSTOP.
@@ -1449,7 +1472,9 @@ long do_fork(unsigned long clone_flags,
 			sigaddset(&p->pending.signal, SIGSTOP);
 			set_tsk_thread_flag(p, TIF_SIGPENDING);
 		}
-
+		/*
+		*子进程使用wake_up_new_task唤醒。换言之，即将其task_struct添加到调度器队列。
+		*/
 		if (!(clone_flags & CLONE_STOPPED))
 			wake_up_new_task(p, clone_flags);
 		else
@@ -1459,7 +1484,12 @@ long do_fork(unsigned long clone_flags,
 			current->ptrace_message = nr;
 			ptrace_notify ((trace << 8) | SIGTRAP);
 		}
-
+		/*
+		*如果使用vfork机制，必须启用子进程的完成机制。
+		*子进程的task_struct的vfork_done成员即用于该目的。
+		*借助于wait_for_completion函数，父进程在该变量上进入睡眠状态，直至子进程推出；在进程终止（或用execve启动
+		*新应用程序）时，内核自动调用complete（vfork_done）。这会唤醒所有因该变量睡眠的进程
+		*/
 		if (clone_flags & CLONE_VFORK) {
 			freezer_do_not_count();
 			wait_for_completion(&vfork);
