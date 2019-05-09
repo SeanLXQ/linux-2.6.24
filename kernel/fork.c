@@ -999,12 +999,16 @@ static struct task_struct *copy_process(unsigned long clone_flags,
 	struct task_struct *p;
 	int cgroup_callbacks_done = 0;
 
+	/*
+	*一方面请求创建一个新命名空间（CLONE_NEWNS），而同时要求与父进程共享所有的文件系统信息（CLONE_FS），没有意义
+	*/
 	if ((clone_flags & (CLONE_NEWNS|CLONE_FS)) == (CLONE_NEWNS|CLONE_FS))
 		return ERR_PTR(-EINVAL);
 
 	/*
 	 * Thread groups must share signals as well, and detached threads
 	 * can only be started up within the thread group.
+	 *在用CLONE_THREAD创建一个线程时，必须用CLONE_SIGHAND激活信号共享。
 	 */
 	if ((clone_flags & CLONE_THREAD) && !(clone_flags & CLONE_SIGHAND))
 		return ERR_PTR(-EINVAL);
@@ -1013,6 +1017,7 @@ static struct task_struct *copy_process(unsigned long clone_flags,
 	 * Shared signal handlers imply shared VM. By way of the above,
 	 * thread groups also imply shared VM. Blocking this case allows
 	 * for various simplifications in other code.
+	 *只有在父子进程之间共享虚拟地址空间时（CLONE_VM），才能够提供共享的信号处理程序
 	 */
 	if ((clone_flags & CLONE_SIGHAND) && !(clone_flags & CLONE_VM))
 		return ERR_PTR(-EINVAL);
@@ -1022,6 +1027,10 @@ static struct task_struct *copy_process(unsigned long clone_flags,
 		goto fork_out;
 
 	retval = -ENOMEM;
+	/*
+	*在内核建立了自洽的标志集之后，用dup_task_struct来建立父进程task_struct的副本。
+	*用于子进程的新的task_struct实例可以在任何空闲的内核内存位置分配
+	*/
 	p = dup_task_struct(current);
 	if (!p)
 		goto fork_out;
