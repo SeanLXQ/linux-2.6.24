@@ -85,6 +85,7 @@ struct thread_info {
 
 /*
  * how to get the thread information struct from C
+ *可获得指向当前执行进程的thread_info实例的指针。其地址可以根据内核栈指针确定，因为thread_info总是位于栈顶
  */
 static inline struct thread_info *current_thread_info(void) __attribute_const__;
 
