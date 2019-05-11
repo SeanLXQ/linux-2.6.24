@@ -1154,6 +1154,13 @@ static struct task_struct *copy_process(unsigned long clone_flags,
 #endif
 
 	/* Perform scheduler related setup. Assign this task to a CPU. */
+	/*
+	*如果资源限制无法防止进程建立，则调用接口函数sched_fork，以便使调度器有机会对新进程进行设置。
+	*在内核版本2.6.23引入CFQ调度器之前，该过程要更加复杂，因为父进程的剩余时间片必须在子进程之间分配
+	*本质上，该例程会初始化一些统计字段，在多处理器系统上，如果有必要可能还会在各个CPU之间对可用的进程重新均衡一下。
+	*此外进程状态设置为TASK_RUNNING，由于新进程事实上还没有运行。这个状态实际上不是真实的。
+	*但这可以防止内核的任何其他部分试图将进程状态从非运行改为运行，并在进程的设置完成之前调度进程
+	*/
 	sched_fork(p, clone_flags);
 
 	if ((retval = security_task_alloc(p)))
@@ -1161,22 +1168,42 @@ static struct task_struct *copy_process(unsigned long clone_flags,
 	if ((retval = audit_alloc(p)))
 		goto bad_fork_cleanup_security;
 	/* copy all the process information */
+	/**copy_xyz
+	*如果CLONE_XYZ置位，则两个进程会共享xyz，此外，为防止与资源实例关联的内存空间释放过快，还要对实例的引用计数加1，
+	*只有进程不在使用内存时，才能释放。如果父进程或子进程修改了共享资源，则变化在两个进程中都可以看到
+	*如果CLONE_XYZ没有置位，接下来会为子进程创建xyz的一个副本，新副本的资源计数器初始化为1，这种情况下，如果父进程或子进程
+	*修改了资源，变化不会传播到另一个进程
+	*/
+	/*如果COPY_SYSVSEM置位，则copy_semundo使用父进程的System V信号量*/
 	if ((retval = copy_semundo(clone_flags, p)))
 		goto bad_fork_cleanup_audit;
+	/*如果COPY_FILES置位，则copy_files使用父进程的文件描述符；否则创建新的files结构。*/
 	if ((retval = copy_files(clone_flags, p)))
 		goto bad_fork_cleanup_semundo;
+	/*如果CLONE_FS置位，则copy_fs使用父进程的文件系统上下文（task_struct->fs）。这是一个fs_struct类型的结构，包含了诸如根目录，
+	*当前工作目录之类的信息
+	*/
 	if ((retval = copy_fs(clone_flags, p)))
 		goto bad_fork_cleanup_files;
+	/*如果CLONE_SIGHAND或CLONE_THREAD置位，则copy_sighand使用父进程的信号处理程序。*/
 	if ((retval = copy_sighand(clone_flags, p)))
 		goto bad_fork_cleanup_fs;
+	/*如果CLONE_THREAD置位，则copy_signal与父进程共同使用信号处理中不特定于处理程序的部分*/
 	if ((retval = copy_signal(clone_flags, p)))
 		goto bad_fork_cleanup_sighand;
+	/*如果COPY_MM置位，则copy_mm让父进程和子进程共享同一个地址空间，两个进程共用同一个mm_struct实例*/
+	/*如果COPY_MM没有置位，并不意味着需要复制父进程的整个地址空间，内核确实会创建页表的一份副本，但并不复制页的实际内容
+	*这是使用COW机制完成的，只有当其中一个进程将数据写入页时，才会进行实际的复制。*/
 	if ((retval = copy_mm(clone_flags, p)))
 		goto bad_fork_cleanup_signal;
 	if ((retval = copy_keys(clone_flags, p)))
 		goto bad_fork_cleanup_mm;
+	/*copy_namespaces用于建立子进程的命名空间,其语义与所有其它标志都相反。
+	*如果没有指定CLONE_NEWxyz，则与父进程共享响应的命名空间，否则创建一个新的命名空间
+	*/
 	if ((retval = copy_namespaces(clone_flags, p)))
 		goto bad_fork_cleanup_keys;
+	/*copy_thread与这里讨论的所有其它复制操作都不大相同，这是一个特定于体系结构的函数，用于复制进程中特定于线程的数据*/
 	retval = copy_thread(0, clone_flags, stack_start, stack_size, p, regs);
 	if (retval)
 		goto bad_fork_cleanup_namespaces;
@@ -1193,7 +1220,7 @@ static struct task_struct *copy_process(unsigned long clone_flags,
 				goto bad_fork_free_pid;
 		}
 	}
-
+	/*在用之前描述的机制为进程分配一个新的pid实例之后，则保存在task_struct中，对于线程，线程组id与分支进程(即调用fork/clone的进程)相同*/
 	p->pid = pid_nr(pid);
 	p->tgid = p->pid;
 	if (clone_flags & CLONE_THREAD)
@@ -1272,6 +1299,7 @@ static struct task_struct *copy_process(unsigned long clone_flags,
 		set_task_cpu(p, smp_processor_id());
 
 	/* CLONE_PARENT re-uses the old parent */
+	/*对于普通进程，父进程是分支进程。对于线程来说有些不同：由于线程被视为分支进程内部的第二执行序列，父进程应是分支进程的父进程*/
 	if (clone_flags & (CLONE_PARENT|CLONE_THREAD))
 		p->real_parent = current->real_parent;
 	else
@@ -1295,7 +1323,9 @@ static struct task_struct *copy_process(unsigned long clone_flags,
 		retval = -ERESTARTNOINTR;
 		goto bad_fork_free_pid;
 	}
-
+	
+	/*非线程的普通进程可通过设置CLONE_PARENT触发同样的行为。对线程来说还需要另一个矫正，即普通进程的线程组组长时进程本身
+	*对线程来说，其组长是当前进程的组长*/
 	if (clone_flags & CLONE_THREAD) {
 		p->group_leader = current->group_leader;
 		list_add_tail_rcu(&p->thread_group, &p->group_leader->thread_group);
@@ -1316,11 +1346,15 @@ static struct task_struct *copy_process(unsigned long clone_flags,
 		}
 	}
 
+	/*新进程接下来必须通过children链表与父进程连接起来。这是通过辅助宏add_parent处理的。此外新进程必须被归入ID数据结构体系中
+	*add_parent（p）
+	*thread_group_leader（p)
+	*/
 	if (likely(p->pid)) {
 		add_parent(p);
 		if (unlikely(p->ptrace & PT_PTRACED))
 			__ptrace_link(p, current->parent);
-
+		/*thread_group_leader只检查新进程的pid和tgid是否相同，如果相同，则该进程是线程组组长，则需要完成更多的工作*/
 		if (thread_group_leader(p)) {
 			if (clone_flags & CLONE_NEWPID)
 				p->nsproxy->pid_ns->child_reaper = p;
