@@ -328,16 +328,16 @@ int bprm_mm_init(struct linux_binprm *bprm)
 {
 	int err;
 	struct mm_struct *mm = NULL;
-
+	/*mm_alloc生成一个新的mm_struct实例来管理进程地址空间*/
 	bprm->mm = mm = mm_alloc();
 	err = -ENOMEM;
 	if (!mm)
 		goto err;
-
+	/*init_new_context是一个特定于体系结构的函数，用于初始化该实例*/
 	err = init_new_context(current, mm);
 	if (err)
 		goto err;
-
+	/*__bprm_mm_init则建立初始的栈*/
 	err = __bprm_mm_init(bprm);
 	if (err)
 		goto err;
@@ -1288,6 +1288,21 @@ EXPORT_SYMBOL(search_binary_handler);
 /*
  * sys_execve() executes a new program.
  */
+/*
+*execve调用和体系结构相关的sys_execve函数，然后该函数很快将工作委托给和系统体系结构无关的do_execve函数
+*这里参数不仅传递了寄存器集合和可执行文件的名称（filename），而且还传递了指向程序的参数和环境变量
+*/
+/*do_execve的代码流程图
+*	do_execve
+*	    |---------打开可执行文件
+*	    |------>bprm_init
+*	    |		|------>mm_alloc
+*           |		|------>init_new_context
+*	    |		|------>__bprm_mm_init
+*	    |------->prepare_binprm
+*	    |------->复制环境和参数数组内容
+*	    |------->search_binary_handler
+*/
 int do_execve(char * filename,
 	char __user *__user *argv,
 	char __user *__user *envp,
@@ -1302,7 +1317,7 @@ int do_execve(char * filename,
 	bprm = kzalloc(sizeof(*bprm), GFP_KERNEL);
 	if (!bprm)
 		goto out_ret;
-
+	/*内核打开要执行的文件。内核找到相关的inode并生成一个文件描述符，用于寻址该文件*/
 	file = open_exec(filename);
 	retval = PTR_ERR(file);
 	if (IS_ERR(file))
@@ -1317,7 +1332,10 @@ int do_execve(char * filename,
 	retval = bprm_mm_init(bprm);
 	if (retval)
 		goto out_file;
-
+	/*
+	*新进程的各个参数（如euid，egid，参数列表，环境，文件名等等）随后会分别传递给其它函数
+	*此时则合并成一个类型为linux_binprm的结构。
+	*/
 	bprm->argc = count(argv, MAX_ARG_STRINGS);
 	if ((retval = bprm->argc) < 0)
 		goto out_mm;
@@ -1329,7 +1347,10 @@ int do_execve(char * filename,
 	retval = security_bprm_alloc(bprm);
 	if (retval)
 		goto out;
-
+	/*
+	*prepare_binprm用与提供一些父进程相关的值（特别是有效UID和GID）
+	*剩余的数据，即参数列表，接下来直接复制到该结构中。注意prepare_binprm也维护了对SUID和SGID位的处理
+	*/
 	retval = prepare_binprm(bprm);
 	if (retval < 0)
 		goto out;
