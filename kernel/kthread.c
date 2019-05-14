@@ -121,6 +121,13 @@ static void create_kthread(struct kthread_create_info *create)
  *
  * Returns a task_struct or ERR_PTR(-ENOMEM).
  */
+/*
+*创建内核线程更现代的方法是kthread_create
+*该函数创建一个新的内核线程，其名称由namefmt给出。最初该线程是停止的，需要使用wake_up_process启动它。
+*此后，会调用通过threadfn给出的线程函数，而data则作为参数
+*另一个备选方案是kthread_run，它会调用kthread_create创建新线程，但是会立即唤醒它。
+*还可以使用kthread_create_cpu代替kthread_create创建内核线程，使之绑定到特定的CPU。
+*/
 struct task_struct *kthread_create(int (*threadfn)(void *data),
 				   void *data,
 				   const char namefmt[],
