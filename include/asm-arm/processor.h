@@ -89,6 +89,10 @@ unsigned long get_wchan(struct task_struct *p);
 /*
  * Create a new kernel thread
  */
+/*
+*调用kernel_thread函数启动一个内核线程，定义特定于体系机构。原型相同
+*产生的线程将执行用fn指针传递的函数，而用arg指定的参数将自动传递给该函数。flags中可指定CLONE标志
+*/
 extern int kernel_thread(int (*fn)(void *), void *arg, unsigned long flags);
 
 #define task_pt_regs(p) \
