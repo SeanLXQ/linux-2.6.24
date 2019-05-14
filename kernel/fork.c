@@ -1226,10 +1226,14 @@ static struct task_struct *copy_process(unsigned long clone_flags,
 	if (clone_flags & CLONE_THREAD)
 		p->tgid = current->tgid;
 
+	/*对于线程复制：CLONE_CHILD_SETTID首先会将另一个传递到clone的用户空间指针（child_tidptr）保存在新进程的task_struct中
+	*/
 	p->set_child_tid = (clone_flags & CLONE_CHILD_SETTID) ? child_tidptr : NULL;
 	/*
 	 * Clear TID on mm_release()?
 	 */
+	/*对于复制线程：CLONE_CHILD_CLEARTID首先会在copy_process中将用户间指针child_tidptr保存在task_struct中，
+	*/
 	p->clear_child_tid = (clone_flags & CLONE_CHILD_CLEARTID) ? child_tidptr: NULL;
 #ifdef CONFIG_FUTEX
 	p->robust_list = NULL;
