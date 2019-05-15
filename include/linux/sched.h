@@ -928,7 +928,13 @@ struct task_struct {
 	int oncpu;
 #endif
 #endif
-
+	
+	/*调度器类相关*/
+	/*prio和normal_prio表示动态优先级，static_prio表示进程的静态优先级
+	*normal_prio表示基于进程的静态优先级和调度策略计算出的优先级
+	*但调度器考虑的优先级保存在prio
+	*sched_class表示进程所属的调度器的类
+	*/
 	int prio, static_prio, normal_prio;
 	struct list_head run_list;
 	const struct sched_class *sched_class;
@@ -953,7 +959,9 @@ struct task_struct {
 #ifdef CONFIG_BLK_DEV_IO_TRACE
 	unsigned int btrace_seq;
 #endif
-
+	/*
+	*policy保存了对该进程应用的调度策略
+	*/
 	unsigned int policy;
 	cpumask_t cpus_allowed;
 	unsigned int time_slice;
