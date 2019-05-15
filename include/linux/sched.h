@@ -934,6 +934,7 @@ struct task_struct {
 	*normal_prio表示基于进程的静态优先级和调度策略计算出的优先级
 	*但调度器考虑的优先级保存在prio
 	*sched_class表示进程所属的调度器的类
+	*run_list和time_slice是循环实时调度器所需要的，但不用于完全公平调度器
 	*/
 	int prio, static_prio, normal_prio;
 	struct list_head run_list;
@@ -961,6 +962,7 @@ struct task_struct {
 #endif
 	/*
 	*policy保存了对该进程应用的调度策略
+	*cpus_allowed是一个位域，在多处理器系统上使用，用来限制进程可以在哪些CPU上运行
 	*/
 	unsigned int policy;
 	cpumask_t cpus_allowed;
