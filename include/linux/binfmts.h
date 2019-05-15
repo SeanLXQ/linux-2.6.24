@@ -63,6 +63,12 @@ struct linux_binprm{
  * This structure defines the functions that are used to load the binary formats that
  * linux accepts.
  */
+/*
+*load_binary用于加载普通程序
+*load_shlib用于加载共享库
+*core_dump用在程序错误的情况下输出内存转储
+*min_coredump是生成内存转储时，内存转储文件长度的下界
+*/
 struct linux_binfmt {
 	struct list_head lh;
 	struct module *module;
@@ -73,6 +79,10 @@ struct linux_binfmt {
 	int hasvdso;
 };
 
+/*
+*每种二进制格式首先必须用register_binfmt向内核注册。该函数的目的是向一个链表增加一种新的二进制格式，
+*该链表的表头是fs/exec.c中的全局变量formats。
+*/
 extern int register_binfmt(struct linux_binfmt *);
 extern void unregister_binfmt(struct linux_binfmt *);
 
