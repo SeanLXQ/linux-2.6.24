@@ -1085,6 +1085,10 @@ int prepare_binprm(struct linux_binprm *bprm)
 		 * is a candidate for mandatory locking, not a setgid
 		 * executable.
 		 */
+		/*
+		*如果setgid置位但组执行位没有置位，那么这可能是强制锁定，
+		*而不是setgid的可执行文件
+		*/
 		if ((mode & (S_ISGID | S_IXGRP)) == (S_ISGID | S_IXGRP)) {
 			current->personality &= ~PER_CLEAR_ON_SETID;
 			bprm->e_gid = inode->i_gid;
@@ -1369,7 +1373,9 @@ int do_execve(char * filename,
 	if (retval < 0)
 		goto out;
 	bprm->argv_len = env_p - bprm->p;
-
+	/*
+	*search_binary_handler用于在do_execve结束时查找一种适当的二进制格式，用于所要执行的特定文件。
+	*/
 	retval = search_binary_handler(bprm,regs);
 	if (retval >= 0) {
 		/* execve success */
