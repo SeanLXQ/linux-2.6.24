@@ -275,6 +275,11 @@ struct rt_rq {
  * (such as the load balancing or the thread migration code), lock
  * acquire operations must be ordered by ascending &runqueue.
  */
+/*
+*核心调度器用于管理活动进程的主要数据结构为就绪队列。各个CPU都有自身的就绪队列。各个活动进程只出现在一个就绪队列中。
+*就绪队列是全局调度器许多操作的起点。但是，进程并不是由就绪队列的成员直接管理的！这是各个调度器类的职责，因此在各个就绪队列中嵌入
+*特定于调度器类的子就绪队列
+*/
 struct rq {
 	/* runqueue lock: */
 	spinlock_t lock;
@@ -283,6 +288,12 @@ struct rq {
 	 * nr_running and cpu_load should be in the same cacheline because
 	 * remote CPUs use both these fields when doing load calculation.
 	 */
+	/*
+	*nr_running指定了队列上可运行进程的数目，不考虑其优先级或调度器类
+	*load提供了就绪队列当前负荷的度量。队列的负荷本质上与队列上当前活动进程的数目成正比，其中的各个进程又有优先级作为权重。
+	*每个就绪队列的虚拟时钟的速度即基于该信息。
+	*cpu_load用于跟踪此前的负荷状态
+	*/
 	unsigned long nr_running;
 	#define CPU_LOAD_IDX_MAX 5
 	unsigned long cpu_load[CPU_LOAD_IDX_MAX];
@@ -294,7 +305,10 @@ struct rq {
 	struct load_weight load;
 	unsigned long nr_load_updates;
 	u64 nr_switches;
-
+	
+	/*
+	*cfs和rt是嵌入的子就绪队列，分别用于完全公平调度器和实时调度器
+	*/
 	struct cfs_rq cfs;
 #ifdef CONFIG_FAIR_GROUP_SCHED
 	/* list of leaf cfs_rq on this cpu: */
@@ -309,11 +323,15 @@ struct rq {
 	 * it on another CPU. Always updated under the runqueue lock:
 	 */
 	unsigned long nr_uninterruptible;
-
+	/*curr指向当前运行的进程的task_struct实例
+	*idle指向idle进程的task_struct实例，该进程已成为idle线程，在无其它可运行进程时执行
+	*/
 	struct task_struct *curr, *idle;
 	unsigned long next_balance;
 	struct mm_struct *prev_mm;
-
+	/*
+	*clock和prev_raw_clock用于实现就绪队列自身的时钟。每次调用周期性调度器时，都会更新clock的值。
+	*/
 	u64 clock, prev_clock_raw;
 	s64 clock_max_delta;
 
@@ -361,10 +379,11 @@ struct rq {
 #endif
 	struct lock_class_key rq_lock_key;
 };
-
+/*系统的所有就绪队列都在runqueue数组中，该数组的每个元素分别对应于系统的一个CPU，单处理器中，数组只有一个元素*/
 static DEFINE_PER_CPU_SHARED_ALIGNED(struct rq, runqueues);
 static DEFINE_MUTEX(sched_hotcpu_mutex);
 
+/*内核定义的简便方法check_preempt_curr，调用与给定进程相关的check_preempt_curr*/
 static inline void check_preempt_curr(struct rq *rq, struct task_struct *p)
 {
 	rq->curr->sched_class->check_preempt_curr(rq, p);
@@ -938,7 +957,9 @@ static void set_load_weight(struct task_struct *p)
 	p->se.load.weight = prio_to_weight[p->static_prio - MAX_RT_PRIO];
 	p->se.load.inv_weight = prio_to_wmult[p->static_prio - MAX_RT_PRIO];
 }
-
+/*
+*在进程注册到就绪队列时，嵌入的sched_entity实例的on_rq成员设置为1，否则为0
+*/
 static void enqueue_task(struct rq *rq, struct task_struct *p, int wakeup)
 {
 	sched_info_queued(p);
