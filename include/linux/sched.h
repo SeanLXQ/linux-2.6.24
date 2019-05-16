@@ -822,14 +822,23 @@ struct rq;
 struct sched_domain;
 
 struct sched_class {
+	/*
+	*对于各个调度器类，都必须提供struct sched_class的一个实例。调度类之间的层次结构是平坦的：实时进程最重要
+	*在完全公平进程之前处理；而完全公平进程则优先于空闲进程；空闲进程只有CPU无事可做时才处于活动状态
+	*next成员将不同的sched_class实例，按上述顺序连接起来。要注意这个层次结构在编译时已经建立
+	*/
 	const struct sched_class *next;
-
+	/*
+	*enqueue_task向就绪队列添加一个新进程。在进程从睡眠状态变为可运行状态时，即发生该操作
+	*dequeue_task提供逆向操作，将一个进程从就绪队列去除。事实上，在进程从可运行状态切换到不可运行状态时，就会发生该操作
+	*在进程想要自愿放弃对处理器的控制权时，可以用sched_yield系统调用，这导致内核调用yield_task
+	*/
 	void (*enqueue_task) (struct rq *rq, struct task_struct *p, int wakeup);
 	void (*dequeue_task) (struct rq *rq, struct task_struct *p, int sleep);
 	void (*yield_task) (struct rq *rq);
-
+	/*必要的情况下，会调用check_preempt_curr，用一个新唤醒的进程来抢占当前进程*/
 	void (*check_preempt_curr) (struct rq *rq, struct task_struct *p);
-
+	/*pick_next_task用于选择下一个将要运行的进程，而put_prev_task则在用另一个进程代替当前运行的进程之前调用*/
 	struct task_struct * (*pick_next_task) (struct rq *rq);
 	void (*put_prev_task) (struct rq *rq, struct task_struct *p);
 
@@ -843,7 +852,10 @@ struct sched_class {
 			      struct rq *busiest, struct sched_domain *sd,
 			      enum cpu_idle_type idle);
 #endif
-
+	/*在进程的调度策略发生变化时，调用set_curr_task
+	*task_tick在每次激活周期性调度器时，由周期性调度器调用
+	*task_new用于建立fork系统调用和调度器之间的关联。每次新进程建立后，用task_new通知调度器
+	*/
 	void (*set_curr_task) (struct rq *rq);
 	void (*task_tick) (struct rq *rq, struct task_struct *p);
 	void (*task_new) (struct rq *rq, struct task_struct *p);
