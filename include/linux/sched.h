@@ -876,10 +876,16 @@ struct load_weight {
  *     6 se->load.weight
  */
 struct sched_entity {
+	/*load指定权重，决定了各个实体占队列总负荷的比例*/
 	struct load_weight	load;		/* for load-balancing */
+	/*run_node是标准的树结点，使得实体可以在红黑树上排序*/
 	struct rb_node		run_node;
 	unsigned int		on_rq;
-
+	/*进程运行时，我们需要记录消耗的cpu时间，以用于完全公平调度器。sum_exec_runtime即用于该目的
+	*跟踪运行时间时update_curr不断累积完成的。调度器中许多地方都会调用该函数。每次调用时，会计算当前时间和
+	*exec_start之间的差值，exec_start则更新到当前时间。差值则嫁到sum_exec_runtime
+	*在进程执行期间虚拟时钟上流逝的时间数量由vruntime统计
+	*/
 	u64			exec_start;
 	u64			sum_exec_runtime;
 	u64			vruntime;
