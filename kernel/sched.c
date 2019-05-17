@@ -1748,6 +1748,8 @@ static void __sched_fork(struct task_struct *p)
 /*
  * fork()/clone()-time setup:
  */
+/*在单处理系统上，该函数实际执行3个操作：初始化新进程与调度相关的字段、建立数据结构、确定进程的动态优先级
+*/
 void sched_fork(struct task_struct *p, int clone_flags)
 {
 	int cpu = get_cpu();
@@ -1761,6 +1763,7 @@ void sched_fork(struct task_struct *p, int clone_flags)
 
 	/*
 	 * Make sure we do not leak PI boosting priority to the child:
+	 *确认没有将提高的优先级泄漏到子进程
 	 */
 	p->prio = current->normal_prio;
 	if (!rt_prio(p->prio))
@@ -1787,6 +1790,9 @@ void sched_fork(struct task_struct *p, int clone_flags)
  * that must be done for every newly created context, then puts the task
  * on the runqueue and wakes it.
  */
+/*在使用wake_up_new_task唤醒新进程时，则是调度器与进程创建逻辑交互的第二个时机：内核会
+*调用调度类的task_new函数。这提供了一个时机，将新进程加入到相应类的就绪队列中
+*/
 void fastcall wake_up_new_task(struct task_struct *p, unsigned long clone_flags)
 {
 	unsigned long flags;
@@ -1964,12 +1970,13 @@ asmlinkage void schedule_tail(struct task_struct *prev)
  * context_switch - switch to the new MM and the new
  * thread's register state.
  */
+/*context_switch是一个分配器，会调用所需的特定于体系结构的方法*/
 static inline void
 context_switch(struct rq *rq, struct task_struct *prev,
 	       struct task_struct *next)
 {
 	struct mm_struct *mm, *oldmm;
-
+	/*prepare_task_switch会调用每个体系结构都必须定义的prepare_arch_switch挂钩*/
 	prepare_task_switch(rq, prev, next);
 	mm = next->mm;
 	oldmm = prev->active_mm;
@@ -1978,13 +1985,16 @@ context_switch(struct rq *rq, struct task_struct *prev,
 	 * combine the page table reload and the switch backend into
 	 * one hypercall.
 	 */
+	/*上下文切换本身通过调用两个特定于处理器的函数完成*/
 	arch_enter_lazy_cpu_mode();
 
 	if (unlikely(!mm)) {
 		next->active_mm = oldmm;
 		atomic_inc(&oldmm->mm_count);
+		/*enter_lazy_tlb通知底层体系结构不需要切换虚拟地址空间的用户空间部分*/
 		enter_lazy_tlb(oldmm, next);
 	} else
+		/*switch_mm更换通过task_struct->mm描述的内存管理上下文。*/
 		switch_mm(oldmm, mm, next);
 
 	if (unlikely(!prev->mm)) {
@@ -2002,14 +2012,17 @@ context_switch(struct rq *rq, struct task_struct *prev,
 #endif
 
 	/* Here we just switch the register state and the stack. */
+	/*switch_to切换处理器寄存器的内容和内核栈，新进程在该调用之后开始执行*/
 	switch_to(prev, next, prev);
 
+	/*编译器指令，确保switch_to和finish_task_switch语句的执行顺序不会因为任何可能的优化而改变*/
 	barrier();
 	/*
 	 * this_rq must be evaluated again because prev may have moved
 	 * CPUs since it called schedule(), thus the 'rq' on its stack
 	 * frame will be invalid.
 	 */
+	/*this_rq必须重新计算，因为在调用schedule之后prev可能已经移动到其它CPU。因此其栈帧上的rq可能是无效的*/
 	finish_task_switch(this_rq(), prev);
 }
 
@@ -3718,9 +3731,10 @@ need_resched_nonpreemptible:
 	*/
 	prev->sched_class->put_prev_task(rq, prev);
 	next = pick_next_task(rq, prev);
-
+	
 	sched_info_switch(prev, next);
-
+	/*context_switch一个接口，供访问特定于体系结构的方法，后者负责执行底层上下文切换。
+	*/
 	if (likely(prev != next)) {
 		rq->nr_switches++;
 		rq->curr = next;
@@ -3736,6 +3750,7 @@ need_resched_nonpreemptible:
 		goto need_resched_nonpreemptible;
 	}
 	preempt_enable_no_resched();
+	/**下列代码检测当前进程的重调度位是否设置，并跳转到如上所述的标号，重新开始搜索一个新进程*/
 	if (unlikely(test_thread_flag(TIF_NEED_RESCHED)))
 		goto need_resched;
 }
