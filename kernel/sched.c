@@ -3511,8 +3511,16 @@ void account_steal_time(struct task_struct *p, cputime_t steal)
  * It also gets called by the fork code, when changing the parent's
  * timeslices.
  */
+/*周期性调度器在scheduler_tick中实现。该函数主要有下面两个任务
+*1.管理内核中整个系统和各个进程的调度相关的统计类。其间执行的主要操作时对各种计数器加1
+*2.激活负责当前进程的调度器类的周期性调度方法
+*/
 void scheduler_tick(void)
 {
+	/*该函数的第一部分处理就绪队列时钟的更新。该职责委托给__update_rq_clock完成，本质上就是增加struct rq当前实例的时钟时间戳
+	*update_cpu_load负责更新就绪队列的cpu_load[]数组。本质上相当于将数组中先前存储的负荷值向后移动一个位置，将当前就绪队列的
+	*负荷记入数组的第一个位置
+	*/
 	int cpu = smp_processor_id();
 	struct rq *rq = cpu_rq(cpu);
 	struct task_struct *curr = rq->curr;
@@ -3527,6 +3535,7 @@ void scheduler_tick(void)
 		rq->clock = next_tick;
 	rq->tick_timestamp = rq->clock;
 	update_cpu_load(rq);
+	/*由于调度器的模块化结构，主题工程实际上比较简单，因为主要的工作可以完全委托给特定调度器类的方法*/
 	if (curr != rq->idle) /* FIXME: needed? */
 		curr->sched_class->task_tick(rq, curr);
 	spin_unlock(&rq->lock);
@@ -3654,6 +3663,9 @@ pick_next_task(struct rq *rq, struct task_struct *prev)
 /*
  * schedule() is the main scheduler function.
  */
+/*
+*该函数首先确定当前就绪队列，并在prev中保存一个指向（仍然）活动进程的task_struct的指针
+*/
 asmlinkage void __sched schedule(void)
 {
 	struct task_struct *prev, *next;
@@ -3677,11 +3689,17 @@ need_resched_nonpreemptible:
 	/*
 	 * Do the rq-clock update outside the rq lock:
 	 */
+	/*
+	*类似周期性调度器，内核也利用该时机来更新就绪队列的时钟，并清楚当前运行进程task_struct中的重调度标志TIF_NEED_RESCHED
+	*/
 	local_irq_disable();
 	__update_rq_clock(rq);
 	spin_lock(&rq->lock);
 	clear_tsk_need_resched(prev);
 
+	/*因为调度器的模块化结构，大多数工作可以委托给调度类。如果当前进程原来处于可中断睡眠状态，但是现在接收到信号，
+	*那么它必须再次提升为运行状态。否则，用相应调度器类的方法使进程停止活动
+	*/
 	if (prev->state && !(preempt_count() & PREEMPT_ACTIVE)) {
 		if (unlikely((prev->state & TASK_INTERRUPTIBLE) &&
 				unlikely(signal_pending(prev)))) {
@@ -3694,7 +3712,10 @@ need_resched_nonpreemptible:
 
 	if (unlikely(!rq->nr_running))
 		idle_balance(cpu, rq);
-
+	/*put_prev_task首先通知调度器类当前运行的进程将要被另一个进程代替，
+	*这不等价于把进程从就绪队列移除，而是提供了一个时机，供执行一些簿记工作并更新统计量。
+	*调度类还必须选择下一个应该执行的程序，该工作有pick_next_task负责
+	*/
 	prev->sched_class->put_prev_task(rq, prev);
 	next = pick_next_task(rq, prev);
 
