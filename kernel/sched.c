@@ -795,6 +795,10 @@ calc_delta_fair(unsigned long delta_exec, struct load_weight *lw)
 	return calc_delta_mine(delta_exec, NICE_0_LOAD, lw);
 }
 
+/*
+*每次进程被加到就绪队列时，内核会调用inc_nr_running。
+*在进程从就绪队列移除时，会调用对应的函数dec_nr_running dec_load、update_load_sub
+*/
 static inline void update_load_add(struct load_weight *lw, unsigned long inc)
 {
 	lw->weight += inc;
@@ -829,6 +833,10 @@ static inline void update_load_sub(struct load_weight *lw, unsigned long dec)
  * If a task goes up by ~10% and another task goes down by ~10% then
  * the relative distance between them is ~25%.)
  */
+/*内核不仅维护了负荷权重自身，而且还有另外一个数值，用于被负荷权重除的结果
+*一般概念是这样的，进程每降低一个nice值，则多获得10%的CPU时间，每升高一个nice值，则放弃
+*10%的CPU时间。为了执行该策略，内核将优先级转换成权重值
+*/
 static const int prio_to_weight[40] = {
  /* -20 */     88761,     71755,     56483,     46273,     36291,
  /* -15 */     29154,     23254,     18705,     14949,     11916,
@@ -936,7 +944,9 @@ static void dec_nr_running(struct task_struct *p, struct rq *rq)
 	rq->nr_running--;
 	dec_load(rq, p);
 }
-
+/*执行权重转换的代码也要考虑实时进程。实时进程的权重是普通进程的两倍。
+*另一个方面，SCHED_IDLE进程的权重总是非常小
+*/
 static void set_load_weight(struct task_struct *p)
 {
 	if (task_has_rt_policy(p)) {
@@ -976,6 +986,7 @@ static void dequeue_task(struct rq *rq, struct task_struct *p, int sleep)
 /*
  * __normal_prio - return the priority that is based on the static prio
  */
+/*返回静态优先级*/
 static inline int __normal_prio(struct task_struct *p)
 {
 	return p->static_prio;
@@ -988,6 +999,9 @@ static inline int __normal_prio(struct task_struct *p)
  * setprio syscalls, and whenever the interactivity
  * estimator recalculates.
  */
+/*
+*普通优先级计算方法
+*/
 static inline int normal_prio(struct task_struct *p)
 {
 	int prio;
@@ -1014,6 +1028,9 @@ static int effective_prio(struct task_struct *p)
 	 * keep the priority unchanged. Otherwise, update priority
 	 * to the normal priority:
 	 */
+	/*
+	*如果是实时进程或已经提高到实时优先级，则保持优先级不变。否则，返回普通优先级
+	*/
 	if (!rt_prio(p->prio))
 		return p->normal_prio;
 	return p->prio;
