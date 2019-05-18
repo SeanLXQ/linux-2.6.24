@@ -228,18 +228,21 @@ static inline void set_task_cfs_rq(struct task_struct *p, unsigned int cpu) { }
 #endif	/* CONFIG_FAIR_GROUP_SCHED */
 
 /* CFS-related fields in a runqueue */
+/*cfs就绪队列*/
 struct cfs_rq {
+	/*nr_running计算了队列上可运行进程的数目，load维护了所有这些进程的累积负荷值*/
 	struct load_weight load;
 	unsigned long nr_running;
-
+	/*min_vruntime跟踪记录队列上所有进程的最小虚拟运行时间*/
 	u64 exec_clock;
 	u64 min_vruntime;
-
+	/*task_timeline是一个基本成员，用于在按时间排序的红黑树中管理所有进程*/
 	struct rb_root tasks_timeline;
 	struct rb_node *rb_leftmost;
 	struct rb_node *rb_load_balance_curr;
 	/* 'curr' points to currently running entity on this cfs_rq.
 	 * It is set to NULL otherwise (i.e when none are currently running).
+	 *curr指向当前执行进程的可调度实体
 	 */
 	struct sched_entity *curr;
 
