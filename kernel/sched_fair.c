@@ -134,7 +134,7 @@ static inline u64 min_vruntime(u64 min_vruntime, u64 vruntime)
 
 	return min_vruntime;
 }
-
+/*完全公平调度器的真正关键点是，红黑树的排序过程是根据下列键进行的*/
 static inline s64 entity_key(struct cfs_rq *cfs_rq, struct sched_entity *se)
 {
 	return se->vruntime - cfs_rq->min_vruntime;
@@ -301,6 +301,9 @@ static u64 sched_vslice_add(struct cfs_rq *cfs_rq, struct sched_entity *se)
  * Update the current task's runtime statistics. Skip current tasks that
  * are not in our scheduling class.
  */
+/*__update_curr需要更新当前进程cpu上执行花费的物理时间和虚拟时间。物理时间的更新比较简单，
+*只要将时间差加到当前统计的时间即可
+*/
 static inline void
 __update_curr(struct cfs_rq *cfs_rq, struct sched_entity *curr,
 	      unsigned long delta_exec)
@@ -312,6 +315,10 @@ __update_curr(struct cfs_rq *cfs_rq, struct sched_entity *curr,
 
 	curr->sum_exec_runtime += delta_exec;
 	schedstat_add(cfs_rq, exec_clock, delta_exec);
+	/*在使用不同的优先级时，必须根据进程的负荷权重重新衡定时间
+	*忽略舍入和溢出检查，calc_delta_fair所做的就是根据下列公式计算 
+	*delta_exec_weighted=delta_exec*NICE_0_LOAD/curr->load.weight
+	*/
 	delta_exec_weighted = delta_exec;
 	if (unlikely(curr->load.weight != NICE_0_LOAD)) {
 		delta_exec_weighted = calc_delta_fair(delta_exec_weighted,
@@ -322,6 +329,7 @@ __update_curr(struct cfs_rq *cfs_rq, struct sched_entity *curr,
 	/*
 	 * maintain cfs_rq->min_vruntime to be a monotonic increasing
 	 * value tracking the leftmost vruntime in the tree.
+	 *跟踪树中最左边的结点的vruntime，维护cfs_rq->min_vruntime的单调递增性
 	 */
 	if (first_fair(cfs_rq)) {
 		vruntime = min_vruntime(curr->vruntime,
@@ -332,7 +340,15 @@ __update_curr(struct cfs_rq *cfs_rq, struct sched_entity *curr,
 	cfs_rq->min_vruntime =
 		max_vruntime(cfs_rq->min_vruntime, vruntime);
 }
-
+/*update_curr
+*	|----->__update_curr
+*	|		|--->更新进程的物理运行时间和虚拟运行时间
+*	|		|--->对CFS队列更新min_vruntime
+*	|------>设置rq->exec_start
+*/
+/*首先，该函数确定就绪队列的当前执行进程，并获取主调度器就绪队列的实际时钟值，该值在每个
+*调度周期都会更新（rq_of是一个辅助函数，用于确定与CFS就绪队列相关的struct rq实例）
+*/
 static void update_curr(struct cfs_rq *cfs_rq)
 {
 	struct sched_entity *curr = cfs_rq->curr;
@@ -346,7 +362,10 @@ static void update_curr(struct cfs_rq *cfs_rq)
 	 * Get the amount of time the current task was running
 	 * since the last time we changed load (this cannot
 	 * overflow on 32 bits):
-	 */
+	 */	
+	/*如果就绪队列上当前没有进程正在执行，则显然无事可做。否则，内核会计算当前与上一次更新负荷
+	*统计量时两次的时间差，并将其余的工作委托给__update_curr.
+	*/
 	delta_exec = (unsigned long)(now - curr->exec_start);
 
 	__update_curr(cfs_rq, curr, delta_exec);
@@ -757,6 +776,15 @@ static inline struct sched_entity *parent_entity(struct sched_entity *se)
  * increased. Here we update the fair scheduling stats and
  * then put the task into the rbtree:
  */
+/*enqueue_task_fair
+*	|------>已经在就绪队列中？----->return
+*	|------>enqueue_entity
+*		 	|----->update_curr
+*			|----->进程刚刚被唤醒?
+*			|	|---->place_entity
+*			|	|---->enqueue_sleeper
+*			|----->se != cfs_rq->curr->__enqueue_entity
+*/
 static void enqueue_task_fair(struct rq *rq, struct task_struct *p, int wakeup)
 {
 	struct cfs_rq *cfs_rq;
@@ -874,8 +902,19 @@ static void check_preempt_wakeup(struct rq *rq, struct task_struct *p)
 		resched_task(curr);
 }
 
+/*pick_next_task_fair
+*	|----->没有可运行进程?---->return	
+*	|----->pick_next_entity
+*			|--->红黑树中的最左进程可用?
+*				|---->__pick_next_entity
+*				|---->set_next_entity
+*/
 static struct task_struct *pick_next_task_fair(struct rq *rq)
 {
+	/*如果nr_running计数器为0，即当前队列上没有可运行进程，则无事可做，函数可以立即返回
+	*如果树中最左边的进程可用，可以使用辅助函数first_fair立即确定，然后用__pick_next_entity从红黑树
+	*中提取出sched_entity实例。现在已经选择了进程，但还需要完成一些工作，才能将其标记为运行进程，这是通过set_next_entity处理的
+	*/
 	struct cfs_rq *cfs_rq = &rq->cfs;
 	struct sched_entity *se;
 
