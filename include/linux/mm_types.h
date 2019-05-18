@@ -35,14 +35,16 @@ typedef unsigned long mm_counter_t;
  */
 struct page {
 	unsigned long flags;		/* Atomic flags, some possibly
-					 * updated asynchronously */
-	atomic_t _count;		/* Usage count, see below. */
+					 * updated asynchronously 原子标志，有些情况下会异步更新 */
+	atomic_t _count;		/* Usage count, see below. 使用计数*/
 	union {
 		atomic_t _mapcount;	/* Count of ptes mapped in mms,
 					 * to show when page is mapped
 					 * & limit reverse map searches.
+					 *内存管理子系统中映射的页表项计数
+					 *用于表示页是否已经映射，还用于限制逆向映射搜索
 					 */
-		unsigned int inuse;	/* SLUB: Nr of objects */
+		unsigned int inuse;	/* SLUB: Nr of objects 用于slub分配器：对象的数目*/
 	};
 	union {
 	    struct {
@@ -52,6 +54,9 @@ struct page {
 						 * swp_entry_t if PageSwapCache;
 						 * indicates order in the buddy
 						 * system if PG_buddy is set.
+						 *由映射私有，不透明数据：如果设置了PagePrivate,通常用于buffer_heads;
+						 *如果设置了PageSwapCache,则用于swp_entry_t;
+						 *如果设置了PG_buddy,则用于表示伙伴系统中的阶
 						 */
 		struct address_space *mapping;	/* If low bit clear, points to
 						 * inode address_space, or NULL.
@@ -59,20 +64,23 @@ struct page {
 						 * memory, low bit is set, and
 						 * it points to anon_vma object:
 						 * see PAGE_MAPPING_ANON below.
+						 *如果最低位为0，则指向inode，
+						 *address_space，或为NULL
+						 *如果页映射为匿名内存，最低位置位，而且该指针指向anon_vma对象
 						 */
 	    };
 #if NR_CPUS >= CONFIG_SPLIT_PTLOCK_CPUS
 	    spinlock_t ptl;
 #endif
-	    struct kmem_cache *slab;	/* SLUB: Pointer to slab */
-	    struct page *first_page;	/* Compound tail pages */
+	    struct kmem_cache *slab;	/* SLUB: Pointer to slab 用于slub分配器：指向slab指针*/
+	    struct page *first_page;	/* Compound tail pages 用于复合页的尾页，指向首页*/
 	};
 	union {
-		pgoff_t index;		/* Our offset within mapping. */
+		pgoff_t index;		/* Our offset within mapping. 在映射内的偏移量*/
 		void *freelist;		/* SLUB: freelist req. slab lock */
 	};
 	struct list_head lru;		/* Pageout list, eg. active_list
-					 * protected by zone->lru_lock !
+					 * protected by zone->lru_lock !换出页列表
 					 */
 	/*
 	 * On machines where all RAM is mapped into kernel address space,
@@ -86,7 +94,7 @@ struct page {
 	 */
 #if defined(WANT_PAGE_VIRTUAL)
 	void *virtual;			/* Kernel virtual address (NULL if
-					   not kmapped, ie. highmem) */
+					   not kmapped, ie. highmem) 内核虚拟地址*/
 #endif /* WANT_PAGE_VIRTUAL */
 };
 
