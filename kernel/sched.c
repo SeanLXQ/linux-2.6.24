@@ -349,9 +349,11 @@ struct rq {
 	struct sched_domain *sd;
 
 	/* For active balancing */
+	/*用于主动均衡*/
 	int active_balance;
 	int push_cpu;
 	/* cpu of this runqueue: */
+	/*就绪队列的cpu*/
 	int cpu;
 
 	struct task_struct *migration_thread;
