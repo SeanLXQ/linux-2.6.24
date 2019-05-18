@@ -4030,6 +4030,7 @@ static void calculate_totalreserve_pages(void)
  *	has a correct pages reserved value, so an adequate number of
  *	pages are left in the zone after a successful __alloc_pages().
  */
+/*lowmen_reserve的计算由setup_per_zone_lowmen_reserve完成*/
 static void setup_per_zone_lowmem_reserve(void)
 {
 	struct pglist_data *pgdat;
@@ -4069,6 +4070,7 @@ static void setup_per_zone_lowmem_reserve(void)
  * Ensures that the pages_{min,low,high} values for each zone are set correctly
  * with respect to min_free_kbytes.
  */
+/*setup_per_zone_pages_min设置struct zone的pages_min,pages_low和pages_high成员。*/
 void setup_per_zone_pages_min(void)
 {
 	unsigned long pages_min = min_free_kbytes >> (PAGE_SHIFT - 10);
