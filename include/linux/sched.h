@@ -842,6 +842,9 @@ struct sched_class {
 	struct task_struct * (*pick_next_task) (struct rq *rq);
 	void (*put_prev_task) (struct rq *rq, struct task_struct *p);
 
+	/*
+	*在smp系统上，每个调度器类的调度方法必须增加两个额外的函数
+	*/
 #ifdef CONFIG_SMP
 	unsigned long (*load_balance) (struct rq *this_rq, int this_cpu,
 			struct rq *busiest, unsigned long max_load_move,
