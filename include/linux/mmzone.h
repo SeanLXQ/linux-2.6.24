@@ -149,6 +149,10 @@ enum zone_type {
 	 * i386, x86_64 and multiple other arches
 	 * 			<16M.
 	 */
+	/*
+	*ZONE_DMA标记适合DMA的内存域。该区域的长度依赖于处理器类型。在IA-32计算机上，一般
+	*的限制是16M
+	*/
 	ZONE_DMA,
 #endif
 #ifdef CONFIG_ZONE_DMA32
@@ -157,6 +161,9 @@ enum zone_type {
 	 * only able to do DMA to the lower 16M but also 32 bit devices that
 	 * can only do DMA areas below 4G.
 	 */
+	/*ZONE_DMA32标记了使用32位地址字可寻址、适合DMA的内存域。显然，只有在64位系统上，两种DMA内存域
+	*才有差别。在32位计算机上，本内存域是空的。
+	*/
 	ZONE_DMA32,
 #endif
 	/*
@@ -164,6 +171,9 @@ enum zone_type {
 	 * performed on pages in ZONE_NORMAL if the DMA devices support
 	 * transfers to all addressable memory.
 	 */
+	/*ZONE_NORMAL标记了可直接映射到内核段的普通内存域。这是在所有体系结构上保证都会存在的
+	*唯一内存域，但无法保证该地址范围对应了实际的物理内存。
+	*/
 	ZONE_NORMAL,
 #ifdef CONFIG_HIGHMEM
 	/*
@@ -174,9 +184,13 @@ enum zone_type {
 	 * table entries on i386) for each page that the kernel needs to
 	 * access.
 	 */
+	/*ZONE_HIGHMEM标记了超出内核段的物理内存
+	*/
 	ZONE_HIGHMEM,
 #endif
+	/*内核定义了一个伪内存域ZONE_MOVABLE,在防止物理内存碎片的机制中需要使用该内存域*/
 	ZONE_MOVABLE,
+	/*MAX_NR_ZONES充当结束标记，在内核想要迭代系统中的所有内存域时，会用到*/
 	MAX_NR_ZONES
 };
 
@@ -529,6 +543,7 @@ extern struct page *mem_map;
  * per-zone basis.
  */
 struct bootmem_data;
+/*pglist_data表示结点的基本元素*/
 typedef struct pglist_data {
 	struct zone node_zones[MAX_NR_ZONES];
 	struct zonelist node_zonelists[MAX_ZONELISTS];
@@ -548,9 +563,9 @@ typedef struct pglist_data {
 	spinlock_t node_size_lock;
 #endif
 	unsigned long node_start_pfn;
-	unsigned long node_present_pages; /* total number of physical pages */
+	unsigned long node_present_pages; /* total number of physical pages 物理内存页总数*/
 	unsigned long node_spanned_pages; /* total size of physical page
-					     range, including holes */
+					     range, including holes 物理内存页总长度，包含洞在内*/
 	int node_id;
 	wait_queue_head_t kswapd_wait;
 	struct task_struct *kswapd;
