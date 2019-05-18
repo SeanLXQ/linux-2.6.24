@@ -3767,6 +3767,7 @@ EXPORT_SYMBOL(schedule);
  * off of preempt_enable. Kernel preemptions off return from interrupt
  * occur there and call schedule directly.
  */
+/*通过preempt_schedule检查内核是否处于临界区*/
 asmlinkage void __sched preempt_schedule(void)
 {
 	struct thread_info *ti = current_thread_info();
@@ -3777,6 +3778,7 @@ asmlinkage void __sched preempt_schedule(void)
 	/*
 	 * If there is a non-zero preempt_count or interrupts are disabled,
 	 * we do not want to preempt the current task. Just return..
+	 *如果preempt_count非零，或中断停用，我们不想要抢占当前进程，返回即可
 	 */
 	if (likely(ti->preempt_count || irqs_disabled()))
 		return;
@@ -4744,7 +4746,7 @@ asmlinkage long sys_sched_yield(void)
 
 	return 0;
 }
-
+/*发起有条件重调度的函数时cond_resched*/
 static void __cond_resched(void)
 {
 #ifdef CONFIG_DEBUG_SPINLOCK_SLEEP
