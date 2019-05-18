@@ -38,7 +38,7 @@ do { \
 	barrier(); \
 	dec_preempt_count(); \
 } while (0)
-
+/*设置TIF_NEED_RESCHED标志来通知所有进程在等待得到CPu时间*/
 #define preempt_check_resched() \
 do { \
 	if (unlikely(test_thread_flag(TIF_NEED_RESCHED))) \
