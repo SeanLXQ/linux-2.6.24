@@ -2327,6 +2327,7 @@ static void build_zonelist_cache(pg_data_t *pgdat)
 #endif	/* CONFIG_NUMA */
 
 /* return values int ....just for stop_machine_run() */
+/*对系统中的各个NUMA结点调用build zonelists*/
 static int __build_all_zonelists(void *dummy)
 {
 	int nid;
@@ -2345,6 +2346,7 @@ void build_all_zonelists(void)
 	set_zonelist_order();
 
 	if (system_state == SYSTEM_BOOTING) {
+		/*建立节点和内存域的工作给__build_all_zonelists*/
 		__build_all_zonelists(NULL);
 		cpuset_init_current_mems_allowed();
 	} else {
