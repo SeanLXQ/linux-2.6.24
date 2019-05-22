@@ -675,11 +675,13 @@ static struct page *__rmqueue_smallest(struct zone *zone, unsigned int order,
  * This array describes the order lists are fallen back to when
  * the free lists for the desirable migrate type are depleted
  */
+/*该数组描述了指定迁移类型的空闲列表耗尽时，其它空闲列表在备用列表里的次序*/
 static int fallbacks[MIGRATE_TYPES][MIGRATE_TYPES-1] = {
 	[MIGRATE_UNMOVABLE]   = { MIGRATE_RECLAIMABLE, MIGRATE_MOVABLE,   MIGRATE_RESERVE },
 	[MIGRATE_RECLAIMABLE] = { MIGRATE_UNMOVABLE,   MIGRATE_MOVABLE,   MIGRATE_RESERVE },
 	[MIGRATE_MOVABLE]     = { MIGRATE_RECLAIMABLE, MIGRATE_UNMOVABLE, MIGRATE_RESERVE },
 	[MIGRATE_RESERVE]     = { MIGRATE_RESERVE,     MIGRATE_RESERVE,   MIGRATE_RESERVE }, /* Never used */
+/*该数据结构大体上是自明的：在内核想要分配不可移动页时，如果对应链表为空，则后退到可回收页链表，接下来到可移动页链表，最后到紧急分配链表*/
 };
 
 /*
@@ -2327,7 +2329,7 @@ static void build_zonelist_cache(pg_data_t *pgdat)
 #endif	/* CONFIG_NUMA */
 
 /* return values int ....just for stop_machine_run() */
-/*��ϵͳ�еĸ���NUMA������build zonelists*/
+/*对系统中的各个NUMA结点调用build zonelists*/
 static int __build_all_zonelists(void *dummy)
 {
 	int nid;
@@ -2346,7 +2348,7 @@ void build_all_zonelists(void)
 	set_zonelist_order();
 
 	if (system_state == SYSTEM_BOOTING) {
-		/*�����ڵ���ڴ���Ĺ�����__build_all_zonelists*/
+		/*建立节点和内存域的工作给__build_all_zonelists*/
 		__build_all_zonelists(NULL);
 		cpuset_init_current_mems_allowed();
 	} else {
@@ -4032,7 +4034,7 @@ static void calculate_totalreserve_pages(void)
  *	has a correct pages reserved value, so an adequate number of
  *	pages are left in the zone after a successful __alloc_pages().
  */
-/*lowmen_reserve的计算由setup_per_zone_lowmen_reserve完成*/
+/*lowmen_reserve鐨勮绠楃敱setup_per_zone_lowmen_reserve瀹屾垚*/
 static void setup_per_zone_lowmem_reserve(void)
 {
 	struct pglist_data *pgdat;
@@ -4072,7 +4074,7 @@ static void setup_per_zone_lowmem_reserve(void)
  * Ensures that the pages_{min,low,high} values for each zone are set correctly
  * with respect to min_free_kbytes.
  */
-/*setup_per_zone_pages_min设置struct zone的pages_min,pages_low和pages_high成员。*/
+/*setup_per_zone_pages_min璁剧疆struct zone鐨刾ages_min,pages_low鍜宲ages_high鎴愬憳銆�*/
 void setup_per_zone_pages_min(void)
 {
 	unsigned long pages_min = min_free_kbytes >> (PAGE_SHIFT - 10);
