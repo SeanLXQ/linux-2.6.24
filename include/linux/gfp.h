@@ -215,6 +215,7 @@ extern struct page *alloc_page_vma(gfp_t gfp_mask,
 /*__get_free_pages返回一个指针，指向给定物理页当前所在的逻辑地址。
 */
 extern unsigned long FASTCALL(__get_free_pages(gfp_t gfp_mask, unsigned int order));
+/*只分配一页，让其内容填充为0，返回指向其逻辑地址的指针*/
 extern unsigned long FASTCALL(get_zeroed_page(gfp_t gfp_mask));
 
 #define __get_free_page(gfp_mask) \
@@ -223,6 +224,7 @@ extern unsigned long FASTCALL(get_zeroed_page(gfp_t gfp_mask));
 #define __get_dma_pages(gfp_mask, order) \
 		__get_free_pages((gfp_mask) | GFP_DMA,(order))
 
+/*释放页*/
 extern void FASTCALL(__free_pages(struct page *page, unsigned int order));
 extern void FASTCALL(free_pages(unsigned long addr, unsigned int order));
 extern void FASTCALL(free_hot_page(struct page *page));
