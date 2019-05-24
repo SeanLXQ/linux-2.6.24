@@ -192,6 +192,9 @@ static inline struct page *alloc_pages_node(int nid, gfp_t gfp_mask,
 #ifdef CONFIG_NUMA
 extern struct page *alloc_pages_current(gfp_t gfp_mask, unsigned order);
 
+/*该函数分配2的order次幂(1<<order)个连续的物理页，并返回一个指针，该指针指向第一个页
+*的page结构体；如果出错，返回null
+*/
 static inline struct page *
 alloc_pages(gfp_t gfp_mask, unsigned int order)
 {
@@ -209,6 +212,8 @@ extern struct page *alloc_page_vma(gfp_t gfp_mask,
 #endif
 #define alloc_page(gfp_mask) alloc_pages(gfp_mask, 0)
 
+/*__get_free_pages返回一个指针，指向给定物理页当前所在的逻辑地址。
+*/
 extern unsigned long FASTCALL(__get_free_pages(gfp_t gfp_mask, unsigned int order));
 extern unsigned long FASTCALL(get_zeroed_page(gfp_t gfp_mask));
 
