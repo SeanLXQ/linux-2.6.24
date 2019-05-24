@@ -92,6 +92,7 @@ int kmem_ptr_validate(struct kmem_cache *cachep, const void *ptr);
  * Common kmalloc functions provided by all allocators
  */
 void * __must_check krealloc(const void *, size_t, gfp_t);
+/*释放由kmalloc分配的内存块*/
 void kfree(const void *);
 size_t ksize(const void *);
 
