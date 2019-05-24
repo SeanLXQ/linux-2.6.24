@@ -224,6 +224,7 @@ extern unsigned long FASTCALL(get_zeroed_page(gfp_t gfp_mask));
 #define __get_dma_pages(gfp_mask, order) \
 		__get_free_pages((gfp_mask) | GFP_DMA,(order))
 
+/* Õ∑≈“≥*/
 extern void FASTCALL(__free_pages(struct page *page, unsigned int order));
 extern void FASTCALL(free_pages(unsigned long addr, unsigned int order));
 extern void FASTCALL(free_hot_page(struct page *page));
