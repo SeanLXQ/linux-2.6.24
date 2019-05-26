@@ -189,6 +189,7 @@ enum zone_type {
 	ZONE_HIGHMEM,
 #endif
 	/*内核定义了一个伪内存域ZONE_MOVABLE,在防止物理内存碎片的机制中需要使用该内存域*/
+	/*实际上ZONE_MOVEABLE中的内存取自高端内存域或者普通内存域，因此我们称其为一个虚拟内存域*/
 	ZONE_MOVABLE,
 	/*MAX_NR_ZONES充当结束标记，在内核想要迭代系统中的所有内存域时，会用到*/
 	MAX_NR_ZONES
