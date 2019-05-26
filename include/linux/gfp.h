@@ -113,6 +113,7 @@ static inline int allocflags_to_migratetype(gfp_t gfp_flags)
 		return MIGRATE_UNMOVABLE;
 
 	/* Group based on mobility */
+	/*æ ¹æ®å¯ç§»åŠ¨æ€§åˆ†ç»„*/
 	return (((gfp_flags & __GFP_MOVABLE) != 0) << 1) |
 		((gfp_flags & __GFP_RECLAIMABLE) != 0);
 }
@@ -192,8 +193,8 @@ static inline struct page *alloc_pages_node(int nid, gfp_t gfp_mask,
 #ifdef CONFIG_NUMA
 extern struct page *alloc_pages_current(gfp_t gfp_mask, unsigned order);
 
-/*¸Ãº¯Êı·ÖÅä2µÄorder´ÎÃİ(1<<order)¸öÁ¬ĞøµÄÎïÀíÒ³£¬²¢·µ»ØÒ»¸öÖ¸Õë£¬¸ÃÖ¸ÕëÖ¸ÏòµÚÒ»¸öÒ³
-*µÄpage½á¹¹Ìå£»Èç¹û³ö´í£¬·µ»Ønull
+/*è¯¥å‡½æ•°åˆ†é…2çš„orderæ¬¡å¹‚(1<<order)ä¸ªè¿ç»­çš„ç‰©ç†é¡µï¼Œå¹¶è¿”å›ä¸€ä¸ªæŒ‡é’ˆï¼Œè¯¥æŒ‡é’ˆæŒ‡å‘ç¬¬ä¸€ä¸ªé¡µ
+*çš„pageç»“æ„ä½“ï¼›å¦‚æœå‡ºé”™ï¼Œè¿”å›null
 */
 static inline struct page *
 alloc_pages(gfp_t gfp_mask, unsigned int order)
@@ -212,10 +213,10 @@ extern struct page *alloc_page_vma(gfp_t gfp_mask,
 #endif
 #define alloc_page(gfp_mask) alloc_pages(gfp_mask, 0)
 
-/*__get_free_pages·µ»ØÒ»¸öÖ¸Õë£¬Ö¸Ïò¸ø¶¨ÎïÀíÒ³µ±Ç°ËùÔÚµÄÂß¼­µØÖ·¡£
+/*__get_free_pagesè¿”å›ä¸€ä¸ªæŒ‡é’ˆï¼ŒæŒ‡å‘ç»™å®šç‰©ç†é¡µå½“å‰æ‰€åœ¨çš„é€»è¾‘åœ°å€ã€‚
 */
 extern unsigned long FASTCALL(__get_free_pages(gfp_t gfp_mask, unsigned int order));
-/*Ö»·ÖÅäÒ»Ò³£¬ÈÃÆäÄÚÈİÌî³äÎª0£¬·µ»ØÖ¸ÏòÆäÂß¼­µØÖ·µÄÖ¸Õë*/
+/*åªåˆ†é…ä¸€é¡µï¼Œè®©å…¶å†…å®¹å¡«å……ä¸º0ï¼Œè¿”å›æŒ‡å‘å…¶é€»è¾‘åœ°å€çš„æŒ‡é’ˆ*/
 extern unsigned long FASTCALL(get_zeroed_page(gfp_t gfp_mask));
 
 #define __get_free_page(gfp_mask) \
@@ -224,7 +225,7 @@ extern unsigned long FASTCALL(get_zeroed_page(gfp_t gfp_mask));
 #define __get_dma_pages(gfp_mask, order) \
 		__get_free_pages((gfp_mask) | GFP_DMA,(order))
 
-/*ÊÍ·ÅÒ³*/
+/*é‡Šæ”¾é¡µ*/
 extern void FASTCALL(__free_pages(struct page *page, unsigned int order));
 extern void FASTCALL(free_pages(unsigned long addr, unsigned int order));
 extern void FASTCALL(free_hot_page(struct page *page));
