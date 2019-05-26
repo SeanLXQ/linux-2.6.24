@@ -144,6 +144,9 @@ static unsigned long __meminitdata dma_reserve;
 
   static struct node_active_region __meminitdata early_node_map[MAX_ACTIVE_REGIONS];
   static int __meminitdata nr_nodemap_entries;
+/*free_area_init_node首先分析并改写特定于体系结构的代码提供的信息。其中
+*需要对照在zone_max_pfn和zone_min_pfn中指定的内存域的边界，计算各个内存域可使用的最低和最高的页帧编号，存储在下面两个全局数组中
+*/
   static unsigned long __meminitdata arch_zone_lowest_possible_pfn[MAX_NR_ZONES];
   static unsigned long __meminitdata arch_zone_highest_possible_pfn[MAX_NR_ZONES];
 #ifdef CONFIG_MEMORY_HOTPLUG_RESERVE
@@ -3329,6 +3332,7 @@ static inline int pageblock_default_order(unsigned int order)
  *   - mark all memory queues empty
  *   - clear the memory bitmaps
  */
+
 static void __meminit free_area_init_core(struct pglist_data *pgdat,
 		unsigned long *zones_size, unsigned long *zholes_size)
 {
@@ -3844,15 +3848,31 @@ static void check_for_regular_memory(pg_data_t *pgdat)
  * starts where the previous one ended. For example, ZONE_DMA32 starts
  * at arch_max_dma_pfn.
  */
+/* free_area_init_nodes
+*|	|-------确定内存域边界
+*|----->|
+*|	|-------free_area_init_node
+*|	|		|------calculate_node_totalpages
+*|	|		|------alloc_node_mem_map
+*|	|		|------free_area_init_core
+*-------|--------check_for_regualr_memory
+*/
 void __init free_area_init_nodes(unsigned long *max_zone_pfn)
 {
 	unsigned long nid;
 	enum zone_type i;
 
 	/* Sort early_node_map as initialisation assumes it is sorted */
+	/*对early_node_map进行排序，因为初始化代码假定它已经是排序的*/
 	sort_node_map();
 
 	/* Record where the zone boundaries are */
+	/*辅助函数find_min_pfn_with_active_regions用于找到注册的最低内存域中可用的编号最小的页帧。
+	*该内存域不一定是ZONE_DMA，例如，在计算机不需要DMA内存的情况下也可以是ZONE_NORMAL。
+	*最低内存域的最大页帧号可以从max_zone_pfn提供的信息直接获得
+	*接下来构建其它内存域的页帧区间，方法很直接：第n个内存域的最小页帧，即前一个（第n-1）内存域的最大页帧
+	*当前内存域的最大页帧又max_zone_pfn给出
+	*/
 	memset(arch_zone_lowest_possible_pfn, 0,
 				sizeof(arch_zone_lowest_possible_pfn));
 	memset(arch_zone_highest_possible_pfn, 0,
@@ -3871,10 +3891,15 @@ void __init free_area_init_nodes(unsigned long *max_zone_pfn)
 	arch_zone_highest_possible_pfn[ZONE_MOVABLE] = 0;
 
 	/* Find the PFNs that ZONE_MOVABLE begins at in each node */
+	/*找到ZONE_MOVEABLE在各个结点的起始页帧编号*/
+	/*由于ZONE_MOVABLE是一个虚拟内存域，不与真正的硬件内存域关联，该内存域的边界总是设置为0.
+	*该内存域一般开始于各个结点的某个特定内存域的某一页帧号。相应的编号在find_zone_movable_pfns_for_nodes里计算
+	*/
 	memset(zone_movable_pfn, 0, sizeof(zone_movable_pfn));
 	find_zone_movable_pfns_for_nodes(zone_movable_pfn);
 
 	/* Print out the zone ranges */
+	/*输出内存域相关信息*/
 	printk("Zone PFN ranges:\n");
 	for (i = 0; i < MAX_NR_ZONES; i++) {
 		if (i == ZONE_MOVABLE)
@@ -3900,6 +3925,7 @@ void __init free_area_init_nodes(unsigned long *max_zone_pfn)
 						early_node_map[i].end_pfn);
 
 	/* Initialise every node */
+	/*初始化各个结点*/
 	setup_nr_node_ids();
 	for_each_online_node(nid) {
 		pg_data_t *pgdat = NODE_DATA(nid);
@@ -3907,6 +3933,11 @@ void __init free_area_init_nodes(unsigned long *max_zone_pfn)
 				find_min_pfn_for_node(nid), NULL);
 
 		/* Any memory on that node */
+		/*结点上是否有内存
+		*根据node_present_pages判断结点具有内存，则在结点位图中设置N_HIGH_MEMORY标志
+		*该标志只表示结点上存在普通或高端内存，因此check_for_regular_memory进一步检查低于ZONE_HIGHMEM的内存域中
+		*是否有内存，并据此在结点位图中相应的设置N_HIGH_MEMORY标志
+		*/
 		if (pgdat->node_present_pages)
 			node_set_state(nid, N_HIGH_MEMORY);
 		check_for_regular_memory(pgdat);
