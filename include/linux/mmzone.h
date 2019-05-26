@@ -150,8 +150,8 @@ enum zone_type {
 	 * 			<16M.
 	 */
 	/*
-	*ZONE_DMA±ê¼ÇÊÊºÏDMAµÄÄÚ´æÓò¡£¸ÃÇøÓòµÄ³¤¶ÈÒÀÀµÓÚ´¦ÀíÆ÷ÀàÐÍ¡£ÔÚIA-32¼ÆËã»úÉÏ£¬Ò»°ã
-	*µÄÏÞÖÆÊÇ16M
+	*ZONE_DMAæ ‡è®°é€‚åˆDMAçš„å†…å­˜åŸŸã€‚è¯¥åŒºåŸŸçš„é•¿åº¦ä¾èµ–äºŽå¤„ç†å™¨ç±»åž‹ã€‚åœ¨IA-32è®¡ç®—æœºä¸Šï¼Œä¸€èˆ¬
+	*çš„é™åˆ¶æ˜¯16M
 	*/
 	ZONE_DMA,
 #endif
@@ -161,8 +161,8 @@ enum zone_type {
 	 * only able to do DMA to the lower 16M but also 32 bit devices that
 	 * can only do DMA areas below 4G.
 	 */
-	/*ZONE_DMA32±ê¼ÇÁËÊ¹ÓÃ32Î»µØÖ·×Ö¿ÉÑ°Ö·¡¢ÊÊºÏDMAµÄÄÚ´æÓò¡£ÏÔÈ»£¬Ö»ÓÐÔÚ64Î»ÏµÍ³ÉÏ£¬Á½ÖÖDMAÄÚ´æÓò
-	*²ÅÓÐ²î±ð¡£ÔÚ32Î»¼ÆËã»úÉÏ£¬±¾ÄÚ´æÓòÊÇ¿ÕµÄ¡£
+	/*ZONE_DMA32æ ‡è®°äº†ä½¿ç”¨32ä½åœ°å€å­—å¯å¯»å€ã€é€‚åˆDMAçš„å†…å­˜åŸŸã€‚æ˜¾ç„¶ï¼Œåªæœ‰åœ¨64ä½ç³»ç»Ÿä¸Šï¼Œä¸¤ç§DMAå†…å­˜åŸŸ
+	*æ‰æœ‰å·®åˆ«ã€‚åœ¨32ä½è®¡ç®—æœºä¸Šï¼Œæœ¬å†…å­˜åŸŸæ˜¯ç©ºçš„ã€‚
 	*/
 	ZONE_DMA32,
 #endif
@@ -171,8 +171,8 @@ enum zone_type {
 	 * performed on pages in ZONE_NORMAL if the DMA devices support
 	 * transfers to all addressable memory.
 	 */
-	/*ZONE_NORMAL±ê¼ÇÁË¿ÉÖ±½ÓÓ³Éäµ½ÄÚºË¶ÎµÄÆÕÍ¨ÄÚ´æÓò¡£ÕâÊÇÔÚËùÓÐÌåÏµ½á¹¹ÉÏ±£Ö¤¶¼»á´æÔÚµÄ
-	*Î¨Ò»ÄÚ´æÓò£¬µ«ÎÞ·¨±£Ö¤¸ÃµØÖ··¶Î§¶ÔÓ¦ÁËÊµ¼ÊµÄÎïÀíÄÚ´æ¡£
+	/*ZONE_NORMALæ ‡è®°äº†å¯ç›´æŽ¥æ˜ å°„åˆ°å†…æ ¸æ®µçš„æ™®é€šå†…å­˜åŸŸã€‚è¿™æ˜¯åœ¨æ‰€æœ‰ä½“ç³»ç»“æž„ä¸Šä¿è¯éƒ½ä¼šå­˜åœ¨çš„
+	*å”¯ä¸€å†…å­˜åŸŸï¼Œä½†æ— æ³•ä¿è¯è¯¥åœ°å€èŒƒå›´å¯¹åº”äº†å®žé™…çš„ç‰©ç†å†…å­˜ã€‚
 	*/
 	ZONE_NORMAL,
 #ifdef CONFIG_HIGHMEM
@@ -184,13 +184,13 @@ enum zone_type {
 	 * table entries on i386) for each page that the kernel needs to
 	 * access.
 	 */
-	/*ZONE_HIGHMEM±ê¼ÇÁË³¬³öÄÚºË¶ÎµÄÎïÀíÄÚ´æ
+	/*ZONE_HIGHMEMæ ‡è®°äº†è¶…å‡ºå†…æ ¸æ®µçš„ç‰©ç†å†…å­˜
 	*/
 	ZONE_HIGHMEM,
 #endif
-	/*ÄÚºË¶¨ÒåÁËÒ»¸öÎ±ÄÚ´æÓòZONE_MOVABLE,ÔÚ·ÀÖ¹ÎïÀíÄÚ´æËéÆ¬µÄ»úÖÆÖÐÐèÒªÊ¹ÓÃ¸ÃÄÚ´æÓò*/
+	/*å†…æ ¸å®šä¹‰äº†ä¸€ä¸ªä¼ªå†…å­˜åŸŸZONE_MOVABLE,åœ¨é˜²æ­¢ç‰©ç†å†…å­˜ç¢Žç‰‡çš„æœºåˆ¶ä¸­éœ€è¦ä½¿ç”¨è¯¥å†…å­˜åŸŸ*/
 	ZONE_MOVABLE,
-	/*MAX_NR_ZONES³äµ±½áÊø±ê¼Ç£¬ÔÚÄÚºËÏëÒªµü´úÏµÍ³ÖÐµÄËùÓÐÄÚ´æÓòÊ±£¬»áÓÃµ½*/
+	/*MAX_NR_ZONESå……å½“ç»“æŸæ ‡è®°ï¼Œåœ¨å†…æ ¸æƒ³è¦è¿­ä»£ç³»ç»Ÿä¸­çš„æ‰€æœ‰å†…å­˜åŸŸæ—¶ï¼Œä¼šç”¨åˆ°*/
 	MAX_NR_ZONES
 };
 
@@ -264,6 +264,9 @@ struct zone {
 	 * Flags for a pageblock_nr_pages block. See pageblock-flags.h.
 	 * In SPARSEMEM, this map is stored in struct mem_section
 	 */
+	/*è·Ÿè¸ªåŒ…å«pageblock_nr_pagesä¸ªé¡µçš„å†…å­˜åŒºçš„å±žæ€§
+	*è¯¥å­—æ®µå½“å‰åªæœ‰ä¸Žé¡µå¯ç§»åŠ¨æ€§ç›¸å…³çš„ä»£ç ä½¿ç”¨
+	*/
 	unsigned long		*pageblock_flags;
 #endif /* CONFIG_SPARSEMEM */
 
@@ -543,7 +546,7 @@ extern struct page *mem_map;
  * per-zone basis.
  */
 struct bootmem_data;
-/*pglist_data±íÊ¾½áµãµÄ»ù±¾ÔªËØ*/
+/*pglist_dataè¡¨ç¤ºç»“ç‚¹çš„åŸºæœ¬å…ƒç´ */
 typedef struct pglist_data {
 	struct zone node_zones[MAX_NR_ZONES];
 	struct zonelist node_zonelists[MAX_ZONELISTS];
@@ -563,9 +566,9 @@ typedef struct pglist_data {
 	spinlock_t node_size_lock;
 #endif
 	unsigned long node_start_pfn;
-	unsigned long node_present_pages; /* total number of physical pages ÎïÀíÄÚ´æÒ³×ÜÊý*/
+	unsigned long node_present_pages; /* total number of physical pages ç‰©ç†å†…å­˜é¡µæ€»æ•°*/
 	unsigned long node_spanned_pages; /* total size of physical page
-					     range, including holes ÎïÀíÄÚ´æÒ³×Ü³¤¶È£¬°üº¬¶´ÔÚÄÚ*/
+					     range, including holes ç‰©ç†å†…å­˜é¡µæ€»é•¿åº¦ï¼ŒåŒ…å«æ´žåœ¨å†…*/
 	int node_id;
 	wait_queue_head_t kswapd_wait;
 	struct task_struct *kswapd;
