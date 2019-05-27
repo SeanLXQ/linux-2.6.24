@@ -137,6 +137,7 @@ void __init fork_init(unsigned long mempages)
 #define ARCH_MIN_TASKALIGN	L1_CACHE_BYTES
 #endif
 	/* create a slab on which task_structs can be allocated */
+	/*创建高速缓存*/
 	task_struct_cachep =
 		kmem_cache_create("task_struct", sizeof(struct task_struct),
 			ARCH_MIN_TASKALIGN, SLAB_PANIC, NULL);
@@ -169,6 +170,9 @@ static struct task_struct *dup_task_struct(struct task_struct *orig)
 
 	prepare_to_copy(orig);
 
+	/*从高速缓存中分配对象
+	*#define alloc_task_struct() kmem_cache_alloc(task_struct cachep, GFP_KERNEL)
+	*/
 	tsk = alloc_task_struct();
 	if (!tsk)
 		return NULL;
