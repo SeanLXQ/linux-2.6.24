@@ -218,6 +218,7 @@ typedef unsigned int kmem_bufctl_t;
  * for a slab, or allocated from an general cache.
  * Slabs are chained into three list: fully used, partial, fully free slabs.
  */
+/*slab描述符struct slab用来描述每个slab*/
 struct slab {
 	struct list_head list;
 	unsigned long colouroff;
@@ -377,7 +378,9 @@ static void kmem_list3_init(struct kmem_list3 *parent)
  *
  * manages a cache.
  */
-
+/*每个高速缓存都使用kmem_cache结构来表示。这个结构包含三个链表：slabs_full、slabs_partial
+*slabs_empty,均存放在kmem_list3结构内，这些链表包含高速缓存中的所有slab。
+*/
 struct kmem_cache {
 /* 1) per-cpu data, touched during every alloc/free */
 	struct array_cache *array[NR_CPUS];
