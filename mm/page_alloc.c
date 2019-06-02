@@ -1690,6 +1690,11 @@ void __pagevec_free(struct pagevec *pvec)
 		free_hot_cold_page(pvec->pages[i], pvec->cold);
 }
 
+/*__free_pages是一个基础函数，用于实现内核API中所有涉及内存释放的函数
+*__free_pages
+*     |----->是否为单页？------>是：free_hot_page
+*            |----->否：__free_pages_ok----->__free_one_page
+*/
 fastcall void __free_pages(struct page *page, unsigned int order)
 {
 	if (put_page_testzero(page)) {
