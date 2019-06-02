@@ -647,6 +647,7 @@ static int prep_new_page(struct page *page, int order, gfp_t gfp_flags)
  * Go through the free lists for the given migratetype and remove
  * the smallest available page from the freelists
  */
+/*__rmqueue_smallest由一个循环组成，按照递增顺序遍历内存域的各个特定迁移类型的空闲列表，直到找到合适的一项*/
 static struct page *__rmqueue_smallest(struct zone *zone, unsigned int order,
 						int migratetype)
 {
