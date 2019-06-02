@@ -764,6 +764,7 @@ static struct page *__rmqueue_fallback(struct zone *zone, int order,
 	int migratetype, i;
 
 	/* Find the largest possible block of pages in the other list */
+	/*在其他类型列表中找到最大可能的内存块*/
 	for (current_order = MAX_ORDER-1; current_order >= order;
 						--current_order) {
 		for (i = 0; i < MIGRATE_TYPES - 1; i++) {
@@ -787,6 +788,9 @@ static struct page *__rmqueue_fallback(struct zone *zone, int order,
 			 * back for a reclaimable kernel allocation, be more
 			 * agressive about taking ownership of free pages
 			 */
+			/*如果分解一个大内存块，则将所有空闲页移动到优先选用的分配列表
+			*如果内核在备用列表中分配可回收内存块，则会更为积极的获取空闲页的所有权
+			*/
 			if (unlikely(current_order >= (pageblock_order >> 1)) ||
 					start_migratetype == MIGRATE_RECLAIMABLE) {
 				unsigned long pages;
