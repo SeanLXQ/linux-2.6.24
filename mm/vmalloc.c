@@ -518,6 +518,15 @@ EXPORT_SYMBOL(__vmalloc);
  *	For tight control over page level allocator and protection flags
  *	use __vmalloc() instead.
  */
+/*vmalloc
+*    |__vmalloc
+*    |__vmalloc_node
+*    |----->get_vm_area_node
+*    |----->_vmalloc_area_node
+*	        |-->|---> 为page实例分配内存
+*		|   |---->alloc_pages_node
+*	        <---|返回地址
+*/
 void *vmalloc(unsigned long size)
 {
 	return __vmalloc(size, GFP_KERNEL | __GFP_HIGHMEM, PAGE_KERNEL);
