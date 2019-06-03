@@ -2339,6 +2339,7 @@ kmem_cache_create (const char *name, size_t size, size_t align,
 			size += BYTES_PER_WORD;
 	}
 #if FORCED_DEBUG && defined(CONFIG_DEBUG_PAGEALLOC)
+	
 	if (size >= malloc_sizes[INDEX_L3 + 1].cs_size
 	    && cachep->obj_size > cache_line_size() && size < PAGE_SIZE) {
 		cachep->obj_offset += PAGE_SIZE - size;
@@ -2352,6 +2353,12 @@ kmem_cache_create (const char *name, size_t size, size_t align,
 	 * (bootstrapping cannot cope with offslab caches so don't do
 	 * it too early on.)
 	 */
+	/*
+	*确定是否将slab头存储在slab之上相对比较简单。如果对象长度大于页帧1/8，则将
+	*头部管理数据存储在slab之外，否则存储在slab上
+	*在kmem_cache_create调用时显式设置CFLGS_OFF_SLAB，那么对较小的对象，也可以将slab头存储在slab之外
+	*最后，增加对象的长度size，直至对应到上文计算的对齐值
+	*/
 	if ((size >= (PAGE_SIZE >> 3)) && !slab_early_init)
 		/*
 		 * Size is large, assume best to place the slab management obj
@@ -2361,8 +2368,20 @@ kmem_cache_create (const char *name, size_t size, size_t align,
 
 	size = ALIGN(size, align);
 
+	/*
+	*内核试图通过calculate_slab_order实现的迭代过程，找到理想的slab长度。基于给定对象长度，cache_estimate针对
+	*特定的页数，来计算对象数目、浪费的空间、着色所需要的空间。该函数会循环调用，直至内核对结果满意为止
+	*/
 	left_over = calculate_slab_order(cachep, size, align, flags);
-
+	/*
+	*通过系统的不断摸索，cache_estimate找到一个slab布局，可以由下列要素描述。size是对象长度，gfp_order是页的分配阶，
+	*num是slab上对象的数目，wastage是分配阶下因浪费而不可用的空间数量。head指定了slab头需要多少空间，该布局对应于下公式
+	*PAGE_SIZE<<gfp_order = head + num * size + left_over
+	*/
+	/*
+	*如果slab头存储在slab外，则head值为0，因为无需为头部分配空间。如果存储在slab上，则该值计算如下
+	*head=sizeof(struct slab) + num * sizeof(kmem_bufctl_t)
+	*/
 	if (!cachep->num) {
 		printk(KERN_ERR
 		       "kmem_cache_create: couldn't create cache %s.\n", name);
@@ -2377,6 +2396,9 @@ kmem_cache_create (const char *name, size_t size, size_t align,
 	 * If the slab has been placed off-slab, and we have enough space then
 	 * move it on-slab. This is at the expense of any extra colouring.
 	 */
+	/*如果slab上有足够的空闲空间可存储slab头，那么即使实际应该存储在slab之外，内核也会利用这个机会
+	*（将其存储在slab上）。CFLGS_OFF_SLAB标志会删除，slab头奖会存储在slab上。
+	*/
 	if (flags & CFLGS_OFF_SLAB && left_over >= slab_size) {
 		flags &= ~CFLGS_OFF_SLAB;
 		left_over -= slab_size;
@@ -2388,6 +2410,10 @@ kmem_cache_create (const char *name, size_t size, size_t align,
 		    cachep->num * sizeof(kmem_bufctl_t) + sizeof(struct slab);
 	}
 
+	/*
+	*下列步骤用于slab着色：内核使用L1缓存行的长度作为偏移量，该值可通过特定于体系结构的函数cache_line_size确定。还必须
+	*保证偏移量是所用对齐值的倍数，否则就没有数据对齐的效果。
+	*/
 	cachep->colour_off = cache_line_size();
 	/* Offset must be a multiple of the alignment. */
 	if (cachep->colour_off < align)
@@ -2420,7 +2446,7 @@ kmem_cache_create (const char *name, size_t size, size_t align,
 		cachep = NULL;
 		goto oops;
 	}
-
+	/*在完成初始化，将初始化过的kmem_cache实例添加到全局链表，表头为cache_chain*/
 	/* cache setup completed, link it into the list */
 	list_add(&cachep->next, &cache_chain);
 oops:
