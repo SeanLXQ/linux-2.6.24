@@ -2159,6 +2159,17 @@ static int __init_refok setup_cpu_cache(struct kmem_cache *cachep)
  * cacheline.  This can be beneficial if you're counting cycles as closely
  * as davem.
  */
+/*kmem_cache_create
+*	|---->参数有效性检查
+*	|---->计算对齐值
+*	|---->分配缓存结构
+*	|---->确定slab头的存储位置
+*	|---->calculate_slab_order
+*	|	|---->用cache_estimate迭代计算缓存长度
+*	|---->计算颜色
+*	|---->enabl_cpucache--->do_tune_cpucache
+*	|---->将缓存插入到cache_chain中
+*/
 struct kmem_cache *
 kmem_cache_create (const char *name, size_t size, size_t align,
 	unsigned long flags,
@@ -2169,6 +2180,7 @@ kmem_cache_create (const char *name, size_t size, size_t align,
 
 	/*
 	 * Sanity checks... these are all serious usage bugs.
+	*进行几个参数检查，以确保没有指定无效值（例如，比处理器字长更短的对象长度，没有名字的slab等）
 	 */
 	if (!name || in_interrupt() || (size < BYTES_PER_WORD) ||
 	    size > KMALLOC_MAX_SIZE) {
@@ -2215,7 +2227,7 @@ kmem_cache_create (const char *name, size_t size, size_t align,
 	 * Enable redzoning and last user accounting, except for caches with
 	 * large objects, if the increased size would increase the object size
 	 * above the next power of two: caches with object sizes just above a
-	 * power of two have a significant amount of internal fragmentation.
+	 * power of two have a significant amount of internal fragmentation
 	 */
 	if (size < 4096 || fls(size - 1) == fls(size-1 + REDZONE_ALIGN +
 						2 * sizeof(unsigned long long)))
@@ -2236,6 +2248,7 @@ kmem_cache_create (const char *name, size_t size, size_t align,
 	 * Check that size is in terms of words.  This is needed to avoid
 	 * unaligned accesses for some archs when redzoning is used, and makes
 	 * sure any on-slab bufctl's are also correctly aligned.
+	 *计算对齐所需的填充字节数。首先，对象长度向上舍入到处理器字节长的倍数
 	 */
 	if (size & (BYTES_PER_WORD - 1)) {
 		size += (BYTES_PER_WORD - 1);
@@ -2243,6 +2256,10 @@ kmem_cache_create (const char *name, size_t size, size_t align,
 	}
 
 	/* calculate the final buffer alignment: */
+	/*对象对齐通常也是基于处理器的字长。但如果设置了SLAB_HWCACHE_ALIGN标志，则内核
+	*按照特定于体系结构的函数cache_line_size给出的值，来对齐数据。内核还尝试将尽可能多的
+	*对象填充到一个缓存行中，只要对象长度允许，则会一直尝试将对齐值除以2.
+	*/
 
 	/* 1) arch recommendation: can be overridden for debug */
 	if (flags & SLAB_HWCACHE_ALIGN) {
@@ -2274,11 +2291,12 @@ kmem_cache_create (const char *name, size_t size, size_t align,
 		size &= ~(REDZONE_ALIGN - 1);
 	}
 
-	/* 2) arch mandated alignment */
+	/* 2) arch mandated alignment 体系结构强制的最小对齐值*/
+	/*内核也考虑到下述事实：某些体系结构需要一个最小的值作为数据对齐的边界，由ARCH_SLAB_MINALIGN定义*/
 	if (ralign < ARCH_SLAB_MINALIGN) {
 		ralign = ARCH_SLAB_MINALIGN;
 	}
-	/* 3) caller mandated alignment */
+	/* 3) caller mandated alignment 调用者强制的对齐值*/
 	if (ralign < align) {
 		ralign = align;
 	}
@@ -2286,11 +2304,14 @@ kmem_cache_create (const char *name, size_t size, size_t align,
 	if (ralign > __alignof__(unsigned long long))
 		flags &= ~(SLAB_RED_ZONE | SLAB_STORE_USER);
 	/*
-	 * 4) Store it.
+	 * 4) Store it.存储最后计算出的对齐值
 	 */
 	align = ralign;
 
 	/* Get cache's description obj. */
+	/*在数据对齐值计算完毕之后，分配struct kmem_cache的一个新实例（为执行该分配，
+	*提供了一个独立的slab缓存，名为cache_cache
+	*/
 	cachep = kmem_cache_zalloc(&cache_cache, GFP_KERNEL);
 	if (!cachep)
 		goto oops;
