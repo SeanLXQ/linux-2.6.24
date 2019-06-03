@@ -383,8 +383,10 @@ static void kmem_list3_init(struct kmem_list3 *parent)
 */
 struct kmem_cache {
 /* 1) per-cpu data, touched during every alloc/free */
+	/*per_cpu数据，在每次分配/释放期间都会访问*/
 	struct array_cache *array[NR_CPUS];
 /* 2) Cache tunables. Protected by cache_chain_mutex */
+	/*可调整的缓存参数。由cache_chain_mutex保护*/
 	unsigned int batchcount;
 	unsigned int limit;
 	unsigned int shared;
@@ -392,31 +394,37 @@ struct kmem_cache {
 	unsigned int buffer_size;
 	u32 reciprocal_buffer_size;
 /* 3) touched by every alloc & free from the backend */
+	/*后端每次分配和释放内存时都会访问*/
 
-	unsigned int flags;		/* constant flags */
-	unsigned int num;		/* # of objs per slab */
+	unsigned int flags;		/* constant flags常数标志 */
+	unsigned int num;		/* # of objs per slab 每个slab中对象的数量*/
 
 /* 4) cache_grow/shrink */
 	/* order of pgs per slab (2^n) */
+	/*缓存的增长/缩减
+	*每个slab中页数，取以2为底数的对数
+	*/
 	unsigned int gfporder;
 
 	/* force GFP flags, e.g. GFP_DMA */
+	/*强制的GFP flags
+	*/
 	gfp_t gfpflags;
 
-	size_t colour;			/* cache colouring range */
-	unsigned int colour_off;	/* colour offset */
+	size_t colour;			/* cache colouring range 缓存着色范围*/
+	unsigned int colour_off;	/* colour offset 着色偏移*/
 	struct kmem_cache *slabp_cache;
 	unsigned int slab_size;
-	unsigned int dflags;		/* dynamic flags */
+	unsigned int dflags;		/* dynamic flags 动态标志*/
 
-	/* constructor func */
+	/* constructor func 构造函数*/
 	void (*ctor)(struct kmem_cache *, void *);
 
-/* 5) cache creation/removal */
+/* 5) cache creation/removal 缓存创建/删除*/
 	const char *name;
 	struct list_head next;
 
-/* 6) statistics */
+/* 6) statistics 统计量*/
 #if STATS
 	unsigned long num_active;
 	unsigned long num_allocations;
