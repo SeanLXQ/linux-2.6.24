@@ -3043,6 +3043,7 @@ retry:
 		goto alloc_done;
 
 	while (batchcount > 0) {
+		/*选择获取对象的slab链表（首先是slab_partial,然后是slabs_free)*/
 		struct list_head *entry;
 		struct slab *slabp;
 		/* Get slab alloc is to come from. */
@@ -3069,13 +3070,14 @@ retry:
 			STATS_INC_ALLOCED(cachep);
 			STATS_INC_ACTIVE(cachep);
 			STATS_SET_HIGH(cachep);
-
+			/*获取对象指针*/
 			ac->entry[ac->avail++] = slab_get_obj(cachep, slabp,
 							    node);
 		}
 		check_slabp(cachep, slabp);
 
 		/* move slabp to correct slabp list: */
+		/*将slabp移动到正确的slab链表*/
 		list_del(&slabp->list);
 		if (slabp->free == BUFCTL_END)
 			list_add(&slabp->list, &l3->slabs_full);
@@ -3251,7 +3253,11 @@ static inline void *____cache_alloc(struct kmem_cache *cachep, gfp_t flags)
 	struct array_cache *ac;
 
 	check_irq_off();
-
+	/*
+	*如果在per-CPU缓存中有对象，那么____cache_alloc检查相对容易
+	*cachep是一个指针，指向缓存使用的kmem_cache_t实例。ac_data宏通过返回
+	*cachep->arrary[smp_processor_id()],从而获得当前活动CPU相关的array_cache实例
+	*/
 	ac = cpu_cache_get(cachep);
 	if (likely(ac->avail)) {
 		STATS_INC_ALLOCHIT(cachep);
@@ -3673,6 +3679,17 @@ static inline void __cache_free(struct kmem_cache *cachep, void *objp)
  * Allocate an object from this cache.  The flags are only relevant
  * if the cache has no available objects.
  */
+/*
+*kmalloc	kmem_cache_alloc
+*   | 		      |
+*  ---------------------
+*          |-->__cache_alloc
+*	   |-->____cache_alloc
+*	   |-->对象在pre-CPU缓存中？-->是：从缓存获取对象-->返回对象
+*	   |	   |---->cache_alloc_refill
+*	   |			|---->查找对象，从缓存获取
+*	   |--->返回对象	     |---->现有slab中的空间不够？-->cache_grow
+*/
 void *kmem_cache_alloc(struct kmem_cache *cachep, gfp_t flags)
 {
 	return __cache_alloc(cachep, flags, __builtin_return_address(0));
