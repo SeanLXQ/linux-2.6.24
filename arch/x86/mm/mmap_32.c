@@ -37,6 +37,10 @@
 #define MIN_GAP (128*1024*1024)
 #define MAX_GAP (TASK_SIZE/6*5)
 
+/*
+*可以根据栈的最大长度，来计算栈最低的可能位置，用作mmap区域的起始点。
+*但内核会确保栈至少跨越128Mb的空间。如果指定的栈界限非常巨大，那么内核会保证至少有一小部分地址空间不被占用
+*/
 static inline unsigned long mmap_base(struct mm_struct *mm)
 {
 	unsigned long gap = current->signal->rlim[RLIMIT_STACK].rlim_cur;
