@@ -539,6 +539,12 @@ static unsigned long randomize_stack_top(unsigned long stack_top)
 #endif
 }
 
+/*
+*load_elf_binary
+*.     |---->如果需要则设置PF_RANDOMIZE
+*.     |---->arch_pick_mmap_layout
+*.     |---->setup_arg_pages
+*/
 static int load_elf_binary(struct linux_binprm *bprm, struct pt_regs *regs)
 {
 	struct file *interpreter = NULL; /* to shut gcc up */
