@@ -62,6 +62,7 @@ void arch_pick_mmap_layout(struct mm_struct *mm)
 	/*
 	 * Fall back to the standard layout if the personality
 	 * bit is set, or if the expected stack growth is unlimited:
+	 *如果设置了personality比特位，或栈的增长不受限制，则回退到标准布局
 	 */
 	if (sysctl_legacy_va_layout ||
 			(current->personality & ADDR_COMPAT_LAYOUT) ||
