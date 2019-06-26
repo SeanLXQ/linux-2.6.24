@@ -1467,6 +1467,13 @@ struct vm_area_struct * find_vma(struct mm_struct * mm, unsigned long addr)
 EXPORT_SYMBOL(find_vma);
 
 /* Same as find_vma, but also return a pointer to the previous VMA in *pprev. */
+/*
+*内核首先检查上次处理区域（现保存在mm->mmap_cache)中是否包含所需的地址，即是否该区域的结束地址在目标地址之后，
+*而起始地址在目标地址之前。
+*如果不在，必须逐步搜索红黑树。rb_node是用于表示树中各个结点的数据结构。rb_entry用于从结点取出“有用数据”
+*树的根结点位于mm->mm_rb.rb_node。如果相关的区域结束地址大于目标地址而起始地址小于目标地址，内核就找到一个适当的结点
+*否则继续搜索
+*/
 struct vm_area_struct *
 find_vma_prev(struct mm_struct *mm, unsigned long addr,
 			struct vm_area_struct **pprev)
@@ -2057,7 +2064,18 @@ void exit_mmap(struct mm_struct *mm)
 /* Insert vm structure into process list sorted by address
  * and into the inode's i_mmap tree.  If vm_file is non-NULL
  * then i_mmap_lock is taken here.
+ *insert_vm_struct是内核用于插入新区域的标准函数。实际工作委托给两个辅助函数
  */
+/*
+*insert_vm_struct
+*.     |--->find_vma_prepare
+*.     |--->vma_link
+*		|---->__vma_link
+*		|	   |---->__vma_link_list
+*		|	   |---->__vma_link_rb
+*		|	   |---->__anon_vma_link
+*		|--->__vma_link_file
+*/
 int insert_vm_struct(struct mm_struct * mm, struct vm_area_struct * vma)
 {
 	struct vm_area_struct * __vma, * prev;
