@@ -71,6 +71,11 @@ extern unsigned int kobjsize(const void *objp);
 /*
  * vm_flags..
  */
+/*
+*VM_READ、VM_WRITE、VM_EXEC、VM_SHARED分别指定了页的内容是否可以读、写、直行或由几个进程共享
+*VM_MAYREAD、VM_MAY_WRITE、VM_MAYEXEC、VM_MAYSHARED用于确定是否可以设置对应的VM_*标志，由mprotect系统调用所需要的
+*VM_GROWSDOWN和VM_GROWSUP表示一个区域是否可以向下或向上扩展
+*/
 #define VM_READ		0x00000001	/* currently active flags */
 #define VM_WRITE	0x00000002
 #define VM_EXEC		0x00000004
