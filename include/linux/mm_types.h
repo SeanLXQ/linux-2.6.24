@@ -103,18 +103,19 @@ struct page {
  * per VM-area/task.  A VM area is any part of the process virtual memory
  * space that has a special rule for the page-fault handlers (ie a shared
  * library, the executable area etc).
+ *虚拟内存区域的表示
  */
 struct vm_area_struct {
-	struct mm_struct * vm_mm;	/* The address space we belong to. */
-	unsigned long vm_start;		/* Our start address within vm_mm. */
+	struct mm_struct * vm_mm;	/* The address space we belong to.所属地址空间 */
+	unsigned long vm_start;		/* Our start address within vm_mm. vm_mm内的起始地址*/
 	unsigned long vm_end;		/* The first byte after our end address
-					   within vm_mm. */
+					   within vm_mm. 在vm_mm内结束地址之后的第一个字节的地址*/
 
-	/* linked list of VM areas per task, sorted by address */
+	/* linked list of VM areas per task, sorted by address各进程的虚拟内存区域链表，按地址排序 */
 	struct vm_area_struct *vm_next;
 
-	pgprot_t vm_page_prot;		/* Access permissions of this VMA. */
-	unsigned long vm_flags;		/* Flags, listed below. */
+	pgprot_t vm_page_prot;		/* Access permissions of this VMA.该虚拟内存区域的访问权限 */
+	unsigned long vm_flags;		/* Flags, listed below. 标志，如下列出*/
 
 	struct rb_node vm_rb;
 
@@ -123,6 +124,9 @@ struct vm_area_struct {
 	 * linkage into the address_space->i_mmap prio tree, or
 	 * linkage to the list of like vmas hanging off its node, or
 	 * linkage of vma in the address_space->i_mmap_nonlinear list.
+	 *对于有地址空间和后备存储器的区域来说，shared连接到address_space->i_mmap优先树，
+	 *或连接到悬挂在优先树结点之外、类似的一组虚拟内存区域的链表，
+	 *或连接到address_space->i_mmap_nonlinear链表中的虚拟内存区域
 	 */
 	union {
 		struct {
@@ -139,18 +143,28 @@ struct vm_area_struct {
 	 * list, after a COW of one of the file pages.	A MAP_SHARED vma
 	 * can only be in the i_mmap tree.  An anonymous MAP_PRIVATE, stack
 	 * or brk vma (with NULL file) can only be in an anon_vma list.
+	 *在文件的某一页经过写时复制追后，文件的MAP_PRIVETE虚拟内存区域可能同时在i_mmap树和
+	 *anon_vma链表中。MAP_SHARED虚拟内存区域只能在i_mmap树中.
+	 *匿名的MAP_PRIVATE，栈或brk虚拟内存区域（file指针为NULL）智能处于anon_vma链表中
 	 */
 	struct list_head anon_vma_node;	/* Serialized by anon_vma->lock */
+					/*对该成员访问通过anon_vma->lock串行化*/
 	struct anon_vma *anon_vma;	/* Serialized by page_table_lock */
+					/*对该成员的访问通过page_table_lock串行化*/
 
 	/* Function pointers to deal with this struct. */
+	/*用于处理该结构的各个函数指针*/
 	struct vm_operations_struct * vm_ops;
 
 	/* Information about our backing store: */
+	/*后备存储器有关信息*/
 	unsigned long vm_pgoff;		/* Offset (within vm_file) in PAGE_SIZE
 					   units, *not* PAGE_CACHE_SIZE */
+					/*(vm_file内）的偏移量，单位是PAGE_SIZE，不是PAGE_CACHE_SIZE*/
 	struct file * vm_file;		/* File we map to (can be NULL). */
+					/*映射到的文件（可能是NULL）*/
 	void * vm_private_data;		/* was vm_pte (shared mem) */
+					/*vm_pte（即共享内存）*/
 	unsigned long vm_truncate_count;/* truncate_count or restart_addr */
 
 #ifndef CONFIG_MMU
