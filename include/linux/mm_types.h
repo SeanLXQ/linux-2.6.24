@@ -162,9 +162,9 @@ struct vm_area_struct {
 };
 
 struct mm_struct {
-	struct vm_area_struct * mmap;		/* list of VMAs */
+	struct vm_area_struct * mmap;		/* list of VMAs虚拟内存区域列表 */
 	struct rb_root mm_rb;
-	struct vm_area_struct * mmap_cache;	/* last find_vma result */
+	struct vm_area_struct * mmap_cache;	/* last find_vma result上一次find_vma的结果 */
 	unsigned long (*get_unmapped_area) (struct file *filp,
 				unsigned long addr, unsigned long len,
 				unsigned long pgoff, unsigned long flags);
