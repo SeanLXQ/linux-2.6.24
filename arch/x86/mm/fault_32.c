@@ -311,6 +311,7 @@ fastcall void __kprobes do_page_fault(struct pt_regs *regs,
 	/* get the address */
         address = read_cr2();
 
+	
 	tsk = current;
 
 	si_code = SEGV_MAPERR;
@@ -328,6 +329,13 @@ fastcall void __kprobes do_page_fault(struct pt_regs *regs,
 	 * (error_code & 4) == 0, and that the fault was not a
 	 * protection error (error_code & 9) == 0.
 	 */
+	/*我们因异常而进入到内核虚拟内存空间。
+	*参考页表为init_mm.pgd
+	*要注意！对这种情况我们不能获取任何锁
+	*我们可能是在中断或临界区中，只应当从主页表复制信息，不允许其他操作
+	*
+	*下述代码验证了异常发生于内核空间（error_code&4)==0,而且异常不是保护错误（error_code&9）==0
+	*/
 	if (unlikely(address >= TASK_SIZE)) {
 		if (!(error_code & 0x0000000d) && vmalloc_fault(address) >= 0)
 			return;
@@ -337,6 +345,9 @@ fastcall void __kprobes do_page_fault(struct pt_regs *regs,
 		 * Don't take the mm semaphore here. If we fixup a prefetch
 		 * fault we could otherwise deadlock.
 		 */
+		/*不要在这里获取mm信号量。
+		*如果修复了取指令造成的缺页异常，则会进入死锁
+		*/
 		goto bad_area_nosemaphore;
 	}
 
@@ -354,6 +365,8 @@ fastcall void __kprobes do_page_fault(struct pt_regs *regs,
 	 * If we're in an interrupt, have no user context or are running in an
 	 * atomic region then we must not take the fault..
 	 */
+	/*如果我们是在中断期间，也没有用户上下文，或者代码处于原子操作范围内，则不能处理该异常
+	*/
 	if (in_atomic() || !mm)
 		goto bad_area_nosemaphore;
 
@@ -406,16 +419,16 @@ good_area:
 	si_code = SEGV_ACCERR;
 	write = 0;
 	switch (error_code & 3) {
-		default:	/* 3: write, present */
-				/* fall through */
-		case 2:		/* write, not present */
+		default:	/* 3: write, present  3:写，不缺页*/
+				/* fall through  处理同2*/
+		case 2:		/* write, not present 写缺页*/
 			if (!(vma->vm_flags & VM_WRITE))
 				goto bad_area;
 			write++;
 			break;
-		case 1:		/* read, present */
+		case 1:		/* read, present 读，不缺页*/
 			goto bad_area;
-		case 0:		/* read, not present */
+		case 0:		/* read, not present 读，缺页*/
 			if (!(vma->vm_flags & (VM_READ | VM_EXEC | VM_WRITE)))
 				goto bad_area;
 	}
@@ -426,6 +439,8 @@ good_area:
 	 * make sure we exit gracefully rather than endlessly redo
 	 * the fault.
 	 */
+	/*如果由于某些原因我们无法处理异常，则必须优雅地退出，而不是一直重试
+	*/
 	fault = handle_mm_fault(mm, vma, address, write);
 	if (unlikely(fault & VM_FAULT_ERROR)) {
 		if (fault & VM_FAULT_OOM)
@@ -459,6 +474,7 @@ bad_area:
 
 bad_area_nosemaphore:
 	/* User mode accesses just cause a SIGSEGV */
+	/*用户状态的访问导致了SIGSEGV*/
 	if (error_code & 4) {
 		/*
 		 * It's possible to have interrupts off here.
@@ -506,6 +522,7 @@ bad_area_nosemaphore:
 
 no_context:
 	/* Are we prepared to handle this kernel fault?  */
+	/*准备好处理这个内核异常了吗？*/
 	if (fixup_exception(regs))
 		return;
 
